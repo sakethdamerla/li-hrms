@@ -31,11 +31,22 @@ export default function SettingsPage() {
     try {
       setLoading(true);
       const response = await api.getShiftDurations();
+      console.log('Shift Durations API Response:', response);
+      
       if (response.success && response.data) {
-        setShiftDurations(response.data.durations || []);
+        // Backend returns: { success: true, count: number, data: number[], durations: ShiftDuration[] }
+        // The durations array contains full objects with _id, duration, label, isActive
+        const durations = response.data.durations || [];
+        setShiftDurations(Array.isArray(durations) ? durations : []);
+      } else {
+        console.error('Failed to load durations:', response);
+        setMessage({ type: 'error', text: response.message || 'Failed to load shift durations' });
+        setShiftDurations([]);
       }
     } catch (err) {
       console.error('Error loading durations:', err);
+      setMessage({ type: 'error', text: 'An error occurred while loading durations' });
+      setShiftDurations([]);
     } finally {
       setLoading(false);
     }
@@ -94,135 +105,157 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-light text-gray-900 mb-6">Settings</h1>
+    <div className="relative min-h-screen">
+      {/* Background Pattern */}
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#e2e8f01f_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f01f_1px,transparent_1px)] bg-[size:28px_28px] dark:bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)]" />
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-blue-50/40 via-indigo-50/35 to-transparent dark:from-slate-900/60 dark:via-slate-900/65 dark:to-slate-900/80" />
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex space-x-8">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === tab.id
-                  ? 'border-green-600 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'shift' && (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-medium text-gray-900 mb-4">Shift Durations</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Configure allowed shift durations. These durations will be available when creating shifts.
-          </p>
-
-          {message && (
-            <div
-              className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-                message.type === 'success'
-                  ? 'bg-green-50 text-green-700 border border-green-200'
-                  : 'bg-red-50 text-red-700 border border-red-200'
-              }`}
-            >
-              {message.text}
-            </div>
-          )}
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Add New Duration
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                min="0.5"
-                step="0.5"
-                value={newDuration}
-                onChange={(e) => setNewDuration(Number(e.target.value))}
-                className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                placeholder="Hours (e.g., 8)"
-              />
-              <input
-                type="text"
-                value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                placeholder="Label (optional, e.g., Full Day)"
-              />
-              <button
-                onClick={handleAddDuration}
-                disabled={saving || !newDuration}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Add
-              </button>
-            </div>
+      <div className="relative z-10 p-6 sm:p-8 lg:p-10">
+        {/* Header Section */}
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200/80 bg-white/95 px-6 py-5 shadow-[0_8px_26px_rgba(30,64,175,0.08)] backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/90 sm:px-8">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 sm:text-3xl">
+              Settings
+            </h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Configure system settings and preferences
+            </p>
           </div>
+        </div>
 
-          {loading ? (
-            <div className="text-center py-8">Loading durations...</div>
-          ) : shiftDurations.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No durations configured</div>
-          ) : (
-            <div className="space-y-2">
-              {shiftDurations.map((duration) => (
-                <div
-                  key={duration._id}
-                  className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-lg"
+        {/* Tabs */}
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-lg dark:border-slate-800 dark:bg-slate-950/95">
+          <nav className="flex space-x-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30'
+                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'shift' && (
+          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-lg dark:border-slate-800 dark:bg-slate-950/95 sm:p-8">
+            <h2 className="mb-2 text-xl font-semibold text-slate-900 dark:text-slate-100">Shift Durations</h2>
+            <p className="mb-6 text-sm text-slate-600 dark:text-slate-400">
+              Configure allowed shift durations. These durations will be available when creating shifts.
+            </p>
+
+            {message && (
+              <div
+                className={`mb-6 rounded-2xl border px-4 py-3 text-sm ${
+                  message.type === 'success'
+                    ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
+                    : 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400'
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50/30 p-5 dark:border-slate-700 dark:from-slate-900/50 dark:to-blue-900/10">
+              <label className="mb-3 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Add New Duration
+              </label>
+              <div className="flex gap-3">
+                <input
+                  type="number"
+                  min="0.5"
+                  step="0.5"
+                  value={newDuration}
+                  onChange={(e) => setNewDuration(Number(e.target.value))}
+                  className="w-32 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm transition-all focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  placeholder="Hours (e.g., 8)"
+                />
+                <input
+                  type="text"
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
+                  className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm transition-all focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  placeholder="Label (optional, e.g., Full Day)"
+                />
+                <button
+                  onClick={handleAddDuration}
+                  disabled={saving || !newDuration}
+                  className="rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:from-blue-600 hover:to-indigo-600 hover:shadow-xl hover:shadow-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">
-                      {duration.duration} hours
-                    </span>
-                    {duration.label && (
-                      <span className="ml-2 text-sm text-gray-500">({duration.label})</span>
-                    )}
-                    {!duration.isActive && (
-                      <span className="ml-2 text-xs text-gray-400">(Inactive)</span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleDeleteDuration(duration._id)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
+                  Add
+                </button>
+              </div>
             </div>
-          )}
-        </div>
-      )}
 
-      {activeTab === 'attendance' && (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-medium text-gray-900 mb-4">Attendance Settings</h2>
-          <p className="text-sm text-gray-600">Attendance-related settings will be configured here.</p>
-        </div>
-      )}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50/50 py-12 dark:border-slate-700 dark:bg-slate-900/50">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+                <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">Loading durations...</p>
+              </div>
+            ) : shiftDurations.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-8 text-center dark:border-slate-700 dark:bg-slate-900/50">
+                <p className="text-sm text-slate-500 dark:text-slate-400">No durations configured</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {shiftDurations.map((duration) => (
+                  <div
+                    key={duration._id}
+                    className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4 transition-all hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600"
+                  >
+                    <div>
+                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {duration.duration} hours
+                      </span>
+                      {duration.label && (
+                        <span className="ml-2 text-sm text-slate-500 dark:text-slate-400">({duration.label})</span>
+                      )}
+                      {!duration.isActive && (
+                        <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                          Inactive
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteDuration(duration._id)}
+                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-all hover:border-red-300 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-      {activeTab === 'payroll' && (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-medium text-gray-900 mb-4">Payroll Settings</h2>
-          <p className="text-sm text-gray-600">Payroll-related settings will be configured here.</p>
-        </div>
-      )}
+        {activeTab === 'attendance' && (
+          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-lg dark:border-slate-800 dark:bg-slate-950/95 sm:p-8">
+            <h2 className="mb-2 text-xl font-semibold text-slate-900 dark:text-slate-100">Attendance Settings</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Attendance-related settings will be configured here.</p>
+          </div>
+        )}
 
-      {activeTab === 'general' && (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-medium text-gray-900 mb-4">General Settings</h2>
-          <p className="text-sm text-gray-600">General system settings will be configured here.</p>
-        </div>
-      )}
+        {activeTab === 'payroll' && (
+          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-lg dark:border-slate-800 dark:bg-slate-950/95 sm:p-8">
+            <h2 className="mb-2 text-xl font-semibold text-slate-900 dark:text-slate-100">Payroll Settings</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Payroll-related settings will be configured here.</p>
+          </div>
+        )}
+
+        {activeTab === 'general' && (
+          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-lg dark:border-slate-800 dark:bg-slate-950/95 sm:p-8">
+            <h2 className="mb-2 text-xl font-semibold text-slate-900 dark:text-slate-100">General Settings</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">General system settings will be configured here.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-

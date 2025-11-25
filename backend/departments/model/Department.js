@@ -90,6 +90,29 @@ const departmentSchema = new mongoose.Schema(
         },
       },
     ],
+    // Shift assignments for this department
+    shifts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Shift',
+      },
+    ],
+    // Paid leaves count (number only)
+    paidLeaves: {
+      type: Number,
+      default: 0,
+    },
+    // Leave limits per day (for deduction rules)
+    leaveLimits: {
+      dailyLimit: {
+        type: Number,
+        default: 0, // 0 = unlimited
+      },
+      monthlyLimit: {
+        type: Number,
+        default: 0, // 0 = unlimited
+      },
+    },
     isActive: {
       type: Boolean,
       default: true,

@@ -8,7 +8,11 @@ const { protect, authorize } = require('../authentication/middleware/authMiddlew
 router.use(protect);
 
 // Shift Duration routes
+// Get allowed durations (for shift creation validation)
 router.get('/durations', shiftController.getAllowedDurations);
+// Get all shift durations with full details (for settings page)
+router.get('/durations/all', shiftDurationController.getAllShiftDurations);
+// CRUD operations for shift durations
 router.post('/durations', authorize('super_admin', 'sub_admin'), shiftDurationController.createShiftDuration);
 router.put('/durations/:id', authorize('super_admin', 'sub_admin'), shiftDurationController.updateShiftDuration);
 router.delete('/durations/:id', authorize('super_admin', 'sub_admin'), shiftDurationController.deleteShiftDuration);

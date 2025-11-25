@@ -1,5 +1,7 @@
 const Department = require('../model/Department');
 const User = require('../../users/model/User');
+const Shift = require('../../shifts/model/Shift');
+const Designation = require('../model/Designation');
 
 // @desc    Get all departments
 // @route   GET /api/departments
@@ -16,6 +18,7 @@ exports.getAllDepartments = async (req, res) => {
     const departments = await Department.find(query)
       .populate('hod', 'name email role')
       .populate('hr', 'name email role')
+      .populate('shifts', 'name startTime endTime duration isActive')
       .populate('createdBy', 'name email')
       .sort({ name: 1 });
 
@@ -42,6 +45,7 @@ exports.getDepartment = async (req, res) => {
     const department = await Department.findById(req.params.id)
       .populate('hod', 'name email role')
       .populate('hr', 'name email role')
+      .populate('shifts', 'name startTime endTime duration isActive')
       .populate('createdBy', 'name email');
 
     if (!department) {
@@ -103,16 +107,7 @@ exports.getDepartmentEmployees = async (req, res) => {
 // @access  Private (Super Admin, Sub Admin, HR)
 exports.createDepartment = async (req, res) => {
   try {
-    const {
-      name,
-      code,
-      description,
-      hod,
-      hr,
-      attendanceConfig,
-      permissionPolicy,
-      autoDeductionRules,
-    } = req.body;
+    const { name, code, description, hod } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -132,26 +127,11 @@ exports.createDepartment = async (req, res) => {
       }
     }
 
-    // Validate HR if provided
-    if (hr) {
-      const hrUser = await User.findById(hr);
-      if (!hrUser) {
-        return res.status(400).json({
-          success: false,
-          message: 'HR user not found',
-        });
-      }
-    }
-
     const department = await Department.create({
       name,
-      code,
-      description,
+      code: code || undefined,
+      description: description || undefined,
       hod: hod || null,
-      hr: hr || null,
-      attendanceConfig: attendanceConfig || {},
-      permissionPolicy: permissionPolicy || {},
-      autoDeductionRules: autoDeductionRules || [],
       createdBy: req.user?.userId,
     });
 
@@ -233,6 +213,21 @@ exports.updateDepartment = async (req, res) => {
     if (attendanceConfig) department.attendanceConfig = { ...department.attendanceConfig, ...attendanceConfig };
     if (permissionPolicy) department.permissionPolicy = { ...department.permissionPolicy, ...permissionPolicy };
     if (autoDeductionRules) department.autoDeductionRules = autoDeductionRules;
+    if (shifts !== undefined) {
+      // Validate shifts if provided
+      if (Array.isArray(shifts) && shifts.length > 0) {
+        const shiftDocs = await Shift.find({ _id: { $in: shifts } });
+        if (shiftDocs.length !== shifts.length) {
+          return res.status(400).json({
+            success: false,
+            message: 'One or more shifts not found',
+          });
+        }
+      }
+      department.shifts = shifts;
+    }
+    if (paidLeaves !== undefined) department.paidLeaves = Number(paidLeaves);
+    if (leaveLimits) department.leaveLimits = { ...department.leaveLimits, ...leaveLimits };
     if (isActive !== undefined) department.isActive = isActive;
 
     await department.save();
@@ -388,6 +383,244 @@ exports.assignHR = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error assigning HR',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Assign shifts to department
+// @route   PUT /api/departments/:id/shifts
+// @access  Private (Super Admin, Sub Admin, HR)
+exports.assignShifts = async (req, res) => {
+  try {
+    const { shiftIds } = req.body;
+
+    if (!Array.isArray(shiftIds)) {
+      return res.status(400).json({
+        success: false,
+        message: 'shiftIds must be an array',
+      });
+    }
+
+    const department = await Department.findById(req.params.id);
+    if (!department) {
+      return res.status(404).json({
+        success: false,
+        message: 'Department not found',
+      });
+    }
+
+    // Validate all shifts exist
+    if (shiftIds.length > 0) {
+      const shifts = await Shift.find({ _id: { $in: shiftIds } });
+      if (shifts.length !== shiftIds.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'One or more shifts not found',
+        });
+      }
+    }
+
+    department.shifts = shiftIds;
+    await department.save();
+
+    const populatedDepartment = await Department.findById(req.params.id).populate('shifts', 'name startTime endTime duration');
+
+    res.status(200).json({
+      success: true,
+      message: 'Shifts assigned successfully',
+      data: populatedDepartment,
+    });
+  } catch (error) {
+    console.error('Error assigning shifts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error assigning shifts',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Get department configuration
+// @route   GET /api/departments/:id/configuration
+// @access  Private
+exports.getDepartmentConfiguration = async (req, res) => {
+  try {
+    const department = await Department.findById(req.params.id)
+      .populate('shifts', 'name startTime endTime duration isActive')
+      .populate('hod', 'name email role')
+      .populate('hr', 'name email role');
+
+    if (!department) {
+      return res.status(404).json({
+        success: false,
+        message: 'Department not found',
+      });
+    }
+
+    // Get designations for this department
+    const designations = await Designation.find({ department: req.params.id, isActive: true })
+      .select('name code deductionRules paidLeaves');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        department,
+        designations,
+        configuration: {
+          attendanceConfig: department.attendanceConfig,
+          permissionPolicy: department.permissionPolicy,
+          autoDeductionRules: department.autoDeductionRules,
+          leaveLimits: department.leaveLimits,
+          paidLeaves: department.paidLeaves,
+          shifts: department.shifts,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching department configuration:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching department configuration',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Update department paid leaves
+// @route   PUT /api/departments/:id/paid-leaves
+// @access  Private (Super Admin, Sub Admin, HR)
+exports.updatePaidLeaves = async (req, res) => {
+  try {
+    const { paidLeaves } = req.body;
+
+    if (paidLeaves === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Paid leaves count is required',
+      });
+    }
+
+    const department = await Department.findById(req.params.id);
+    if (!department) {
+      return res.status(404).json({
+        success: false,
+        message: 'Department not found',
+      });
+    }
+
+    department.paidLeaves = Number(paidLeaves);
+
+    await department.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Paid leaves updated successfully',
+      data: { paidLeaves: department.paidLeaves },
+    });
+  } catch (error) {
+    console.error('Error updating paid leaves:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating paid leaves',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Update department leave limits
+// @route   PUT /api/departments/:id/leave-limits
+// @access  Private (Super Admin, Sub Admin, HR)
+exports.updateLeaveLimits = async (req, res) => {
+  try {
+    const { dailyLimit, monthlyLimit } = req.body;
+
+    const department = await Department.findById(req.params.id);
+    if (!department) {
+      return res.status(404).json({
+        success: false,
+        message: 'Department not found',
+      });
+    }
+
+    if (dailyLimit !== undefined) department.leaveLimits.dailyLimit = dailyLimit;
+    if (monthlyLimit !== undefined) department.leaveLimits.monthlyLimit = monthlyLimit;
+
+    await department.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Leave limits updated successfully',
+      data: department.leaveLimits,
+    });
+  } catch (error) {
+    console.error('Error updating leave limits:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating leave limits',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Update department configuration
+// @route   PUT /api/departments/:id/configuration
+// @access  Private (Super Admin, Sub Admin, HR)
+exports.updateDepartmentConfiguration = async (req, res) => {
+  try {
+    const {
+      attendanceConfig,
+      permissionPolicy,
+      autoDeductionRules,
+      leaveLimits,
+      paidLeaves,
+    } = req.body;
+
+    const department = await Department.findById(req.params.id);
+    if (!department) {
+      return res.status(404).json({
+        success: false,
+        message: 'Department not found',
+      });
+    }
+
+    if (attendanceConfig) {
+      department.attendanceConfig = { ...department.attendanceConfig, ...attendanceConfig };
+    }
+
+    if (permissionPolicy) {
+      department.permissionPolicy = { ...department.permissionPolicy, ...permissionPolicy };
+    }
+
+    if (autoDeductionRules) {
+      department.autoDeductionRules = autoDeductionRules;
+    }
+
+    if (leaveLimits) {
+      department.leaveLimits = { ...department.leaveLimits, ...leaveLimits };
+    }
+
+    if (paidLeaves !== undefined) {
+      department.paidLeaves = Number(paidLeaves);
+    }
+
+    await department.save();
+
+    const populatedDepartment = await Department.findById(req.params.id)
+      .populate('shifts', 'name startTime endTime duration')
+      .populate('hod', 'name email role')
+      .populate('hr', 'name email role');
+
+    res.status(200).json({
+      success: true,
+      message: 'Department configuration updated successfully',
+      data: populatedDepartment,
+    });
+  } catch (error) {
+    console.error('Error updating department configuration:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating department configuration',
       error: error.message,
     });
   }

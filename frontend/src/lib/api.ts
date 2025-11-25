@@ -121,7 +121,7 @@ export const api = {
 
   // Shifts
   getShifts: async (isActive?: boolean) => {
-    const query = isActive !== undefined ? `?isActive=${isActive}` : '';
+    const query = isActive !== undefined ? `?isActive=${String(isActive)}` : '';
     return apiRequest<Shift[]>(`/shifts${query}`, { method: 'GET' });
   },
 
@@ -153,7 +153,7 @@ export const api = {
 
   // Shift Durations
   getShiftDurations: async () => {
-    return apiRequest<any[]>('/shifts/durations', { method: 'GET' });
+    return apiRequest<{ success: boolean; count: number; data: number[]; durations: any[] }>('/shifts/durations/all', { method: 'GET' });
   },
 
   createShiftDuration: async (data: { duration: number; label?: string }) => {
@@ -228,6 +228,40 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ hrId }),
     });
+  },
+
+  assignShifts: async (id: string, shiftIds: string[]) => {
+    return apiRequest<Department>(`/departments/${id}/shifts`, {
+      method: 'PUT',
+      body: JSON.stringify({ shiftIds }),
+    });
+  },
+
+  // Designations
+  getDesignations: async (departmentId: string) => {
+    return apiRequest<any[]>(`/departments/${departmentId}/designations`, { method: 'GET' });
+  },
+
+  getDesignation: async (id: string) => {
+    return apiRequest<any>(`/departments/designations/${id}`, { method: 'GET' });
+  },
+
+  createDesignation: async (departmentId: string, data: any) => {
+    return apiRequest<any>(`/departments/${departmentId}/designations`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateDesignation: async (id: string, data: any) => {
+    return apiRequest<any>(`/departments/designations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteDesignation: async (id: string) => {
+    return apiRequest<void>(`/departments/designations/${id}`, { method: 'DELETE' });
   },
 
   // Settings

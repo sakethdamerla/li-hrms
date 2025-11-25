@@ -70,8 +70,7 @@ shiftSchema.methods.calculateDuration = function () {
 };
 
 // Validate duration against allowed durations before saving
-shiftSchema.pre('save', async function (next) {
-  try {
+shiftSchema.pre('save', async function () {
     // Calculate duration if not set
     if (!this.duration || this.isModified('startTime') || this.isModified('endTime')) {
       this.duration = this.calculateDuration();
@@ -90,20 +89,13 @@ shiftSchema.pre('save', async function (next) {
         );
 
         if (!isAllowed) {
-          return next(
-            new Error(
+        throw new Error(
               `Duration ${this.duration} hours is not allowed. Allowed durations: ${durationValues.join(', ')} hours`
-            )
           );
         }
       }
     }
     // If ShiftDuration model doesn't exist yet, skip validation (for initial setup)
-    
-    next();
-  } catch (error) {
-    next(error);
-  }
 });
 
 module.exports = mongoose.model('Shift', shiftSchema);
