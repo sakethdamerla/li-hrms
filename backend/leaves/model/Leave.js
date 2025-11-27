@@ -19,11 +19,11 @@ const LeaveSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Leave type
+    // Leave type (dynamic - values come from LeaveSettings)
     leaveType: {
       type: String,
-      enum: ['casual', 'sick', 'earned', 'maternity', 'paternity', 'unpaid', 'compensatory', 'other'],
       required: [true, 'Leave type is required'],
+      trim: true,
     },
 
     // Start date of leave

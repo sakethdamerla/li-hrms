@@ -219,13 +219,48 @@ export default function LeavesPage() {
 
   const loadTypes = async () => {
     try {
-      const [leaveTypesRes, odTypesRes] = await Promise.all([
-        api.getLeaveTypes('leave'),
-        api.getLeaveTypes('od'),
+      // Load from settings API
+      const [leaveSettingsRes, odSettingsRes] = await Promise.all([
+        api.getLeaveSettings('leave'),
+        api.getLeaveSettings('od'),
       ]);
 
-      if (leaveTypesRes.success) setLeaveTypes(leaveTypesRes.data || []);
-      if (odTypesRes.success) setODTypes(odTypesRes.data || []);
+      // Extract leave types from settings
+      let fetchedLeaveTypes: any[] = [];
+      if (leaveSettingsRes.success && leaveSettingsRes.data?.leaveTypes) {
+        fetchedLeaveTypes = leaveSettingsRes.data.leaveTypes.filter((t: any) => t.isActive !== false);
+      }
+      
+      // Extract OD types from settings
+      let fetchedODTypes: any[] = [];
+      if (odSettingsRes.success && odSettingsRes.data?.odTypes) {
+        fetchedODTypes = odSettingsRes.data.odTypes.filter((t: any) => t.isActive !== false);
+      }
+
+      // Use fetched types or defaults
+      if (fetchedLeaveTypes.length > 0) {
+        setLeaveTypes(fetchedLeaveTypes);
+      } else {
+        // Fallback defaults
+        setLeaveTypes([
+          { code: 'CL', name: 'Casual Leave' },
+          { code: 'SL', name: 'Sick Leave' },
+          { code: 'EL', name: 'Earned Leave' },
+          { code: 'LWP', name: 'Leave Without Pay' },
+        ]);
+      }
+
+      if (fetchedODTypes.length > 0) {
+        setODTypes(fetchedODTypes);
+      } else {
+        // Fallback defaults
+        setODTypes([
+          { code: 'OFFICIAL', name: 'Official Work' },
+          { code: 'TRAINING', name: 'Training' },
+          { code: 'MEETING', name: 'Meeting' },
+          { code: 'CLIENT', name: 'Client Visit' },
+        ]);
+      }
     } catch (err) {
       console.error('Failed to load types:', err);
       // Set defaults if API fails
@@ -236,10 +271,10 @@ export default function LeavesPage() {
         { code: 'LWP', name: 'Leave Without Pay' },
       ]);
       setODTypes([
-        { code: 'OW', name: 'Official Work' },
-        { code: 'TR', name: 'Training' },
-        { code: 'MT', name: 'Meeting' },
-        { code: 'CV', name: 'Client Visit' },
+        { code: 'OFFICIAL', name: 'Official Work' },
+        { code: 'TRAINING', name: 'Training' },
+        { code: 'MEETING', name: 'Meeting' },
+        { code: 'CLIENT', name: 'Client Visit' },
       ]);
     }
   };
@@ -373,7 +408,31 @@ export default function LeavesPage() {
 
   const openApplyDialog = (type: 'leave' | 'od') => {
     setApplyType(type);
-    resetForm();
+    
+    // Reset form first
+    setFormData({
+      leaveType: '',
+      odType: '',
+      fromDate: '',
+      toDate: '',
+      purpose: '',
+      contactNumber: '',
+      placeVisited: '',
+      isHalfDay: false,
+      halfDayType: '',
+      remarks: '',
+    });
+    setSelectedEmployee(null);
+    setEmployeeSearch('');
+    setShowEmployeeDropdown(false);
+    
+    // Auto-select if only one type available
+    if (type === 'leave' && leaveTypes.length === 1) {
+      setFormData(prev => ({ ...prev, leaveType: leaveTypes[0].code }));
+    } else if (type === 'od' && odTypes.length === 1) {
+      setFormData(prev => ({ ...prev, odType: odTypes[0].code }));
+    }
+    
     setShowApplyDialog(true);
   };
 
@@ -876,23 +935,35 @@ export default function LeavesPage() {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   {applyType === 'leave' ? 'Leave Type' : 'OD Type'} *
                 </label>
-                <select
-                  value={applyType === 'leave' ? formData.leaveType : formData.odType}
-                  onChange={(e) => {
-                    if (applyType === 'leave') {
-                      setFormData({ ...formData, leaveType: e.target.value });
-                    } else {
-                      setFormData({ ...formData, odType: e.target.value });
-                    }
-                  }}
-                  required
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                >
-                  <option value="">Select {applyType === 'leave' ? 'leave' : 'OD'} type</option>
-                  {(applyType === 'leave' ? leaveTypes : odTypes).map((type) => (
-                    <option key={type.code} value={type.code}>{type.name}</option>
-                  ))}
-                </select>
+                {/* Show as non-editable text if only one type exists */}
+                {((applyType === 'leave' && leaveTypes.length === 1) || (applyType === 'od' && odTypes.length === 1)) ? (
+                  <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-700 dark:text-white">
+                    <span className="font-medium">
+                      {applyType === 'leave' 
+                        ? leaveTypes[0]?.name || leaveTypes[0]?.code 
+                        : odTypes[0]?.name || odTypes[0]?.code}
+                    </span>
+                    <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">(Only type available)</span>
+                  </div>
+                ) : (
+                  <select
+                    value={applyType === 'leave' ? formData.leaveType : formData.odType}
+                    onChange={(e) => {
+                      if (applyType === 'leave') {
+                        setFormData({ ...formData, leaveType: e.target.value });
+                      } else {
+                        setFormData({ ...formData, odType: e.target.value });
+                      }
+                    }}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  >
+                    <option value="">Select {applyType === 'leave' ? 'leave' : 'OD'} type</option>
+                    {(applyType === 'leave' ? leaveTypes : odTypes).map((type) => (
+                      <option key={type.code} value={type.code}>{type.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Dates */}

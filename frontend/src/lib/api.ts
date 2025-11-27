@@ -685,6 +685,14 @@ export const api = {
     });
   },
 
+  // Update leave/OD settings (alias for saveLeaveSettings)
+  updateLeaveSettings: async (type: 'leave' | 'od', data: any) => {
+    return apiRequest<any>(`/leaves/settings/${type}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Get leave/OD types
   getLeaveTypes: async (type: 'leave' | 'od') => {
     return apiRequest<any>(`/leaves/types/${type}`, { method: 'GET' });

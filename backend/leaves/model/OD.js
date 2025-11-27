@@ -20,11 +20,11 @@ const ODSchema = new mongoose.Schema(
       required: true,
     },
 
-    // OD type
+    // OD type (dynamic - values come from LeaveSettings)
     odType: {
       type: String,
-      enum: ['official_work', 'training', 'meeting', 'client_visit', 'conference', 'fieldwork', 'other'],
       required: [true, 'OD type is required'],
+      trim: true,
     },
 
     // Start date

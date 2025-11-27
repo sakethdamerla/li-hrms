@@ -3,13 +3,66 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-type TabType = 'shift' | 'employee' | 'attendance' | 'payroll' | 'general';
+type TabType = 'shift' | 'employee' | 'leaves' | 'attendance' | 'payroll' | 'general';
 
 interface ShiftDuration {
   _id: string;
   duration: number;
   label?: string;
   isActive: boolean;
+}
+
+interface LeaveType {
+  code: string;
+  name: string;
+  description?: string;
+  maxDays?: number;
+  carryForward?: boolean;
+  isActive: boolean;
+}
+
+interface ODType {
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
+interface WorkflowStep {
+  stepOrder: number;
+  stepName: string;
+  approverRole: string;
+  availableActions: string[];
+  approvedStatus: string;
+  rejectedStatus: string;
+  nextStepOnApprove: number | null;
+  isActive: boolean;
+}
+
+interface LeaveSettings {
+  leaveTypes: LeaveType[];
+  workflow: {
+    isEnabled: boolean;
+    steps: WorkflowStep[];
+    finalAuthority: {
+      role: string;
+      anyHRCanApprove: boolean;
+    };
+  };
+  settings: {
+    allowBackdated: boolean;
+    maxBackdatedDays: number;
+    allowFutureDated: boolean;
+    maxAdvanceDays: number;
+  };
+}
+
+interface ODSettings {
+  odTypes: ODType[];
+  workflow: {
+    isEnabled: boolean;
+    steps: WorkflowStep[];
+  };
 }
 
 // Icon Components
@@ -51,11 +104,23 @@ export default function SettingsPage() {
   const [mssqlConnected, setMssqlConnected] = useState(false);
   const [employeeSettingsLoading, setEmployeeSettingsLoading] = useState(false);
 
+  // Leave settings state
+  const [leaveSettings, setLeaveSettings] = useState<LeaveSettings | null>(null);
+  const [odSettings, setODSettings] = useState<ODSettings | null>(null);
+  const [leaveSettingsLoading, setLeaveSettingsLoading] = useState(false);
+  const [leaveSubTab, setLeaveSubTab] = useState<'types' | 'odTypes' | 'workflow' | 'odWorkflow' | 'general'>('types');
+  
+  // New leave type form
+  const [newLeaveType, setNewLeaveType] = useState({ code: '', name: '', description: '', maxDays: 12 });
+  const [newODType, setNewODType] = useState({ code: '', name: '', description: '' });
+
   useEffect(() => {
     if (activeTab === 'shift') {
       loadShiftDurations();
     } else if (activeTab === 'employee') {
       loadEmployeeSettings();
+    } else if (activeTab === 'leaves') {
+      loadLeaveSettings();
     }
   }, [activeTab]);
 
@@ -94,6 +159,224 @@ export default function SettingsPage() {
       console.error('Error loading employee settings:', err);
     } finally {
       setEmployeeSettingsLoading(false);
+    }
+  };
+
+  const loadLeaveSettings = async () => {
+    try {
+      setLeaveSettingsLoading(true);
+      
+      // Load leave settings
+      const leaveRes = await api.getLeaveSettings('leave');
+      if (leaveRes.success && leaveRes.data) {
+        setLeaveSettings(leaveRes.data);
+      } else {
+        // Initialize with defaults if not found
+        setLeaveSettings({
+          leaveTypes: [
+            { code: 'CL', name: 'Casual Leave', maxDays: 12, carryForward: false, isActive: true },
+            { code: 'SL', name: 'Sick Leave', maxDays: 12, carryForward: false, isActive: true },
+            { code: 'EL', name: 'Earned Leave', maxDays: 15, carryForward: true, isActive: true },
+            { code: 'ML', name: 'Maternity Leave', maxDays: 180, carryForward: false, isActive: true },
+            { code: 'PL', name: 'Paternity Leave', maxDays: 15, carryForward: false, isActive: true },
+            { code: 'LWP', name: 'Leave Without Pay', carryForward: false, isActive: true },
+          ],
+          workflow: {
+            isEnabled: true,
+            steps: [
+              { stepOrder: 1, stepName: 'HOD Approval', approverRole: 'hod', availableActions: ['approve', 'reject', 'forward'], approvedStatus: 'hod_approved', rejectedStatus: 'hod_rejected', nextStepOnApprove: 2, isActive: true },
+              { stepOrder: 2, stepName: 'HR Approval', approverRole: 'hr', availableActions: ['approve', 'reject'], approvedStatus: 'approved', rejectedStatus: 'hr_rejected', nextStepOnApprove: null, isActive: true },
+            ],
+            finalAuthority: { role: 'hr', anyHRCanApprove: true },
+          },
+          settings: {
+            allowBackdated: false,
+            maxBackdatedDays: 7,
+            allowFutureDated: true,
+            maxAdvanceDays: 90,
+          },
+        });
+      }
+
+      // Load OD settings
+      const odRes = await api.getLeaveSettings('od');
+      if (odRes.success && odRes.data) {
+        setODSettings(odRes.data);
+      } else {
+        setODSettings({
+          odTypes: [
+            { code: 'OFFICIAL', name: 'Official Work', isActive: true },
+            { code: 'TRAINING', name: 'Training', isActive: true },
+            { code: 'MEETING', name: 'Meeting', isActive: true },
+            { code: 'CLIENT', name: 'Client Visit', isActive: true },
+            { code: 'CONF', name: 'Conference', isActive: true },
+            { code: 'FIELD', name: 'Field Work', isActive: true },
+          ],
+          workflow: {
+            isEnabled: true,
+            steps: [
+              { stepOrder: 1, stepName: 'HOD Approval', approverRole: 'hod', availableActions: ['approve', 'reject', 'forward'], approvedStatus: 'hod_approved', rejectedStatus: 'hod_rejected', nextStepOnApprove: 2, isActive: true },
+              { stepOrder: 2, stepName: 'HR Approval', approverRole: 'hr', availableActions: ['approve', 'reject'], approvedStatus: 'approved', rejectedStatus: 'hr_rejected', nextStepOnApprove: null, isActive: true },
+            ],
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Error loading leave settings:', err);
+      setMessage({ type: 'error', text: 'Failed to load leave settings' });
+    } finally {
+      setLeaveSettingsLoading(false);
+    }
+  };
+
+  const handleAddLeaveType = async () => {
+    if (!newLeaveType.code || !newLeaveType.name) {
+      setMessage({ type: 'error', text: 'Code and Name are required' });
+      return;
+    }
+
+    const updatedTypes = [...(leaveSettings?.leaveTypes || []), { ...newLeaveType, isActive: true }];
+    
+    try {
+      setSaving(true);
+      const response = await api.updateLeaveSettings('leave', { 
+        ...leaveSettings, 
+        leaveTypes: updatedTypes 
+      });
+      
+      if (response.success) {
+        setLeaveSettings(prev => prev ? { ...prev, leaveTypes: updatedTypes } : null);
+        setNewLeaveType({ code: '', name: '', description: '', maxDays: 12 });
+        setMessage({ type: 'success', text: 'Leave type added successfully' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to add leave type' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteLeaveType = async (code: string) => {
+    if (!confirm('Are you sure you want to delete this leave type?')) return;
+    
+    const updatedTypes = leaveSettings?.leaveTypes.filter(t => t.code !== code) || [];
+    
+    try {
+      setSaving(true);
+      const response = await api.updateLeaveSettings('leave', { 
+        ...leaveSettings, 
+        leaveTypes: updatedTypes 
+      });
+      
+      if (response.success) {
+        setLeaveSettings(prev => prev ? { ...prev, leaveTypes: updatedTypes } : null);
+        setMessage({ type: 'success', text: 'Leave type deleted' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to delete leave type' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddODType = async () => {
+    if (!newODType.code || !newODType.name) {
+      setMessage({ type: 'error', text: 'Code and Name are required' });
+      return;
+    }
+
+    const updatedTypes = [...(odSettings?.odTypes || []), { ...newODType, isActive: true }];
+    
+    try {
+      setSaving(true);
+      const response = await api.updateLeaveSettings('od', { 
+        ...odSettings, 
+        odTypes: updatedTypes 
+      });
+      
+      if (response.success) {
+        setODSettings(prev => prev ? { ...prev, odTypes: updatedTypes } : null);
+        setNewODType({ code: '', name: '', description: '' });
+        setMessage({ type: 'success', text: 'OD type added successfully' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to add OD type' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteODType = async (code: string) => {
+    if (!confirm('Are you sure you want to delete this OD type?')) return;
+    
+    const updatedTypes = odSettings?.odTypes.filter(t => t.code !== code) || [];
+    
+    try {
+      setSaving(true);
+      const response = await api.updateLeaveSettings('od', { 
+        ...odSettings, 
+        odTypes: updatedTypes 
+      });
+      
+      if (response.success) {
+        setODSettings(prev => prev ? { ...prev, odTypes: updatedTypes } : null);
+        setMessage({ type: 'success', text: 'OD type deleted' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to delete OD type' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveLeaveWorkflow = async () => {
+    if (!leaveSettings) return;
+    
+    try {
+      setSaving(true);
+      const response = await api.updateLeaveSettings('leave', leaveSettings);
+      
+      if (response.success) {
+        setMessage({ type: 'success', text: 'Leave workflow saved successfully' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save workflow' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveODWorkflow = async () => {
+    if (!odSettings) return;
+    
+    try {
+      setSaving(true);
+      const response = await api.updateLeaveSettings('od', odSettings);
+      
+      if (response.success) {
+        setMessage({ type: 'success', text: 'OD workflow saved successfully' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save workflow' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveLeaveGeneralSettings = async () => {
+    if (!leaveSettings) return;
+    
+    try {
+      setSaving(true);
+      const response = await api.updateLeaveSettings('leave', leaveSettings);
+      
+      if (response.success) {
+        setMessage({ type: 'success', text: 'Leave settings saved successfully' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save settings' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -203,8 +486,17 @@ export default function SettingsPage() {
   const tabs: { id: TabType; label: string }[] = [
     { id: 'shift', label: 'Shift' },
     { id: 'employee', label: 'Employee' },
+    { id: 'leaves', label: 'Leaves' },
     { id: 'attendance', label: 'Attendance' },
     { id: 'payroll', label: 'Payroll' },
+    { id: 'general', label: 'General' },
+  ];
+
+  const leaveSubTabs = [
+    { id: 'types', label: 'Leave Types' },
+    { id: 'odTypes', label: 'OD Types' },
+    { id: 'workflow', label: 'Leave Workflow' },
+    { id: 'odWorkflow', label: 'OD Workflow' },
     { id: 'general', label: 'General' },
   ];
 
@@ -492,6 +784,490 @@ export default function SettingsPage() {
                   {saving ? 'Saving...' : 'Save Employee Settings'}
                 </button>
               </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'leaves' && (
+          <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-lg dark:border-slate-800 dark:bg-slate-950/95 sm:p-8">
+            <h2 className="mb-2 text-xl font-semibold text-slate-900 dark:text-slate-100">Leave & OD Settings</h2>
+            <p className="mb-6 text-sm text-slate-600 dark:text-slate-400">
+              Configure leave types, OD types, and approval workflows.
+            </p>
+
+            {message && (
+              <div
+                className={`mb-6 rounded-2xl border px-4 py-3 text-sm ${
+                  message.type === 'success'
+                    ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
+                    : 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400'
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+
+            {/* Sub Tabs */}
+            <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900">
+              <nav className="flex flex-wrap gap-1">
+                {leaveSubTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setLeaveSubTab(tab.id as typeof leaveSubTab);
+                      setMessage(null);
+                    }}
+                    className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                      leaveSubTab === tab.id
+                        ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-800 dark:text-blue-400'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {leaveSettingsLoading ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50/50 py-12 dark:border-slate-700 dark:bg-slate-900/50">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+                <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">Loading settings...</p>
+              </div>
+            ) : (
+              <>
+                {/* Leave Types */}
+                {leaveSubTab === 'types' && (
+                  <div className="space-y-6">
+                    {/* Add New Leave Type */}
+                    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-green-50/30 p-5 dark:border-slate-700 dark:from-slate-900/50 dark:to-green-900/10">
+                      <label className="mb-3 block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        Add New Leave Type
+                      </label>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
+                        <input
+                          type="text"
+                          value={newLeaveType.code}
+                          onChange={(e) => setNewLeaveType(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm transition-all focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                          placeholder="Code (e.g., CL)"
+                        />
+                        <input
+                          type="text"
+                          value={newLeaveType.name}
+                          onChange={(e) => setNewLeaveType(prev => ({ ...prev, name: e.target.value }))}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm transition-all focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:col-span-2"
+                          placeholder="Name (e.g., Casual Leave)"
+                        />
+                        <input
+                          type="number"
+                          value={newLeaveType.maxDays}
+                          onChange={(e) => setNewLeaveType(prev => ({ ...prev, maxDays: Number(e.target.value) }))}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm transition-all focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                          placeholder="Max Days"
+                        />
+                        <button
+                          onClick={handleAddLeaveType}
+                          disabled={saving || !newLeaveType.code || !newLeaveType.name}
+                          className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition-all hover:from-green-600 hover:to-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Leave Types List */}
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-700">
+                      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Configured Leave Types</h3>
+                      </div>
+                      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {leaveSettings?.leaveTypes && leaveSettings.leaveTypes.length > 0 ? (
+                          leaveSettings.leaveTypes.map((type) => (
+                            <div key={type.code} className="flex items-center justify-between px-4 py-3">
+                              <div className="flex items-center gap-4">
+                                <span className="rounded-lg bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                  {type.code}
+                                </span>
+                                <div>
+                                  <span className="font-medium text-slate-900 dark:text-slate-100">{type.name}</span>
+                                  {type.maxDays && (
+                                    <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
+                                      (Max: {type.maxDays} days)
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteLeaveType(type.code)}
+                                className="rounded-lg p-1.5 text-slate-400 transition-all hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                title="Delete"
+                              >
+                                <DeleteIcon />
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                            No leave types configured. Add one above.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* OD Types */}
+                {leaveSubTab === 'odTypes' && (
+                  <div className="space-y-6">
+                    {/* Add New OD Type */}
+                    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-purple-50/30 p-5 dark:border-slate-700 dark:from-slate-900/50 dark:to-purple-900/10">
+                      <label className="mb-3 block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        Add New OD Type
+                      </label>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                        <input
+                          type="text"
+                          value={newODType.code}
+                          onChange={(e) => setNewODType(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm transition-all focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                          placeholder="Code (e.g., TRAINING)"
+                        />
+                        <input
+                          type="text"
+                          value={newODType.name}
+                          onChange={(e) => setNewODType(prev => ({ ...prev, name: e.target.value }))}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm transition-all focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:col-span-2"
+                          placeholder="Name (e.g., Training Program)"
+                        />
+                        <button
+                          onClick={handleAddODType}
+                          disabled={saving || !newODType.code || !newODType.name}
+                          className="rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:from-purple-600 hover:to-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* OD Types List */}
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-700">
+                      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Configured OD Types</h3>
+                      </div>
+                      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {odSettings?.odTypes && odSettings.odTypes.length > 0 ? (
+                          odSettings.odTypes.map((type) => (
+                            <div key={type.code} className="flex items-center justify-between px-4 py-3">
+                              <div className="flex items-center gap-4">
+                                <span className="rounded-lg bg-purple-100 px-2.5 py-1 text-xs font-bold text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                                  {type.code}
+                                </span>
+                                <span className="font-medium text-slate-900 dark:text-slate-100">{type.name}</span>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteODType(type.code)}
+                                className="rounded-lg p-1.5 text-slate-400 transition-all hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                title="Delete"
+                              >
+                                <DeleteIcon />
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                            No OD types configured. Add one above.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Leave Workflow */}
+                {leaveSubTab === 'workflow' && (
+                  <div className="space-y-6">
+                    {/* Workflow Enable Toggle */}
+                    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50/30 p-5 dark:border-slate-700 dark:from-slate-900/50 dark:to-blue-900/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Enable Workflow</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Multi-step approval process for leave requests</p>
+                        </div>
+                        <label className="relative inline-flex cursor-pointer items-center">
+                          <input
+                            type="checkbox"
+                            checked={leaveSettings?.workflow.isEnabled || false}
+                            onChange={(e) => setLeaveSettings(prev => prev ? {
+                              ...prev,
+                              workflow: { ...prev.workflow, isEnabled: e.target.checked }
+                            } : null)}
+                            className="peer sr-only"
+                          />
+                          <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-slate-600 dark:bg-slate-700 dark:peer-focus:ring-blue-800"></div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Workflow Steps */}
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-700">
+                      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Approval Flow</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Define the approval hierarchy</p>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-center gap-4">
+                          {leaveSettings?.workflow?.steps && leaveSettings.workflow.steps.map((step, index) => (
+                            <div key={step.stepOrder} className="flex items-center gap-4">
+                              <div className="flex flex-col items-center">
+                                <div className={`flex h-12 w-12 items-center justify-center rounded-full ${
+                                  step.approverRole === 'hod' 
+                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                                    : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                                }`}>
+                                  <span className="text-lg font-bold">{step.stepOrder}</span>
+                                </div>
+                                <span className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-400">{step.stepName}</span>
+                                <span className="text-[10px] uppercase text-slate-400">{step.approverRole}</span>
+                              </div>
+                              {index < (leaveSettings?.workflow?.steps?.length || 0) - 1 && (
+                                <div className="flex items-center">
+                                  <div className="h-0.5 w-8 bg-slate-300 dark:bg-slate-600"></div>
+                                  <span className="text-slate-400">→</span>
+                                  <div className="h-0.5 w-8 bg-slate-300 dark:bg-slate-600"></div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          <div className="flex flex-col items-center">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                              ✓
+                            </div>
+                            <span className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-400">Approved</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Final Authority */}
+                    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-green-50/30 p-5 dark:border-slate-700 dark:from-slate-900/50 dark:to-green-900/10">
+                      <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Final Authority</h3>
+                      <div className="flex flex-wrap gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="finalAuthority"
+                            checked={leaveSettings?.workflow.finalAuthority.role === 'hr'}
+                            onChange={() => setLeaveSettings(prev => prev ? {
+                              ...prev,
+                              workflow: { ...prev.workflow, finalAuthority: { ...prev.workflow.finalAuthority, role: 'hr' } }
+                            } : null)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-slate-700 dark:text-slate-300">HR</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="finalAuthority"
+                            checked={leaveSettings?.workflow.finalAuthority.role === 'super_admin'}
+                            onChange={() => setLeaveSettings(prev => prev ? {
+                              ...prev,
+                              workflow: { ...prev.workflow, finalAuthority: { ...prev.workflow.finalAuthority, role: 'super_admin' } }
+                            } : null)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-slate-700 dark:text-slate-300">Super Admin Only</span>
+                        </label>
+                      </div>
+                      <label className="mt-3 flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={leaveSettings?.workflow.finalAuthority.anyHRCanApprove || false}
+                          onChange={(e) => setLeaveSettings(prev => prev ? {
+                            ...prev,
+                            workflow: { ...prev.workflow, finalAuthority: { ...prev.workflow.finalAuthority, anyHRCanApprove: e.target.checked } }
+                          } : null)}
+                          className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-slate-700 dark:text-slate-300">Any HR can give final approval</span>
+                      </label>
+                    </div>
+
+                    <button
+                      onClick={handleSaveLeaveWorkflow}
+                      disabled={saving}
+                      className="w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:from-blue-600 hover:to-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {saving ? 'Saving...' : 'Save Leave Workflow'}
+                    </button>
+                  </div>
+                )}
+
+                {/* OD Workflow */}
+                {leaveSubTab === 'odWorkflow' && (
+                  <div className="space-y-6">
+                    {/* Workflow Enable Toggle */}
+                    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-purple-50/30 p-5 dark:border-slate-700 dark:from-slate-900/50 dark:to-purple-900/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Enable OD Workflow</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Multi-step approval process for OD requests</p>
+                        </div>
+                        <label className="relative inline-flex cursor-pointer items-center">
+                          <input
+                            type="checkbox"
+                            checked={odSettings?.workflow.isEnabled || false}
+                            onChange={(e) => setODSettings(prev => prev ? {
+                              ...prev,
+                              workflow: { ...prev.workflow, isEnabled: e.target.checked }
+                            } : null)}
+                            className="peer sr-only"
+                          />
+                          <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:border-slate-600 dark:bg-slate-700 dark:peer-focus:ring-purple-800"></div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* OD Workflow Steps */}
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-700">
+                      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">OD Approval Flow</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Same flow as leave by default</p>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-center gap-4">
+                          {odSettings?.workflow?.steps && odSettings.workflow.steps.map((step, index) => (
+                            <div key={step.stepOrder} className="flex items-center gap-4">
+                              <div className="flex flex-col items-center">
+                                <div className={`flex h-12 w-12 items-center justify-center rounded-full ${
+                                  step.approverRole === 'hod' 
+                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                                    : 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
+                                }`}>
+                                  <span className="text-lg font-bold">{step.stepOrder}</span>
+                                </div>
+                                <span className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-400">{step.stepName}</span>
+                                <span className="text-[10px] uppercase text-slate-400">{step.approverRole}</span>
+                              </div>
+                              {index < (odSettings?.workflow?.steps?.length || 0) - 1 && (
+                                <div className="flex items-center">
+                                  <div className="h-0.5 w-8 bg-slate-300 dark:bg-slate-600"></div>
+                                  <span className="text-slate-400">→</span>
+                                  <div className="h-0.5 w-8 bg-slate-300 dark:bg-slate-600"></div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          <div className="flex flex-col items-center">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                              ✓
+                            </div>
+                            <span className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-400">Approved</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleSaveODWorkflow}
+                      disabled={saving}
+                      className="w-full rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:from-purple-600 hover:to-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {saving ? 'Saving...' : 'Save OD Workflow'}
+                    </button>
+                  </div>
+                )}
+
+                {/* General Leave Settings */}
+                {leaveSubTab === 'general' && (
+                  <div className="space-y-6">
+                    {/* Backdated Leave */}
+                    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-amber-50/30 p-5 dark:border-slate-700 dark:from-slate-900/50 dark:to-amber-900/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Allow Backdated Leave</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Allow employees to apply leave for past dates</p>
+                        </div>
+                        <label className="relative inline-flex cursor-pointer items-center">
+                          <input
+                            type="checkbox"
+                            checked={leaveSettings?.settings.allowBackdated || false}
+                            onChange={(e) => setLeaveSettings(prev => prev ? {
+                              ...prev,
+                              settings: { ...prev.settings, allowBackdated: e.target.checked }
+                            } : null)}
+                            className="peer sr-only"
+                          />
+                          <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-amber-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:border-slate-600 dark:bg-slate-700 dark:peer-focus:ring-amber-800"></div>
+                        </label>
+                      </div>
+                      {leaveSettings?.settings.allowBackdated && (
+                        <div className="mt-4">
+                          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                            Maximum backdated days
+                          </label>
+                          <input
+                            type="number"
+                            value={leaveSettings?.settings.maxBackdatedDays || 7}
+                            onChange={(e) => setLeaveSettings(prev => prev ? {
+                              ...prev,
+                              settings: { ...prev.settings, maxBackdatedDays: Number(e.target.value) }
+                            } : null)}
+                            className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Future Dated Leave */}
+                    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50/30 p-5 dark:border-slate-700 dark:from-slate-900/50 dark:to-blue-900/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Allow Future Dated Leave</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Allow employees to apply leave in advance</p>
+                        </div>
+                        <label className="relative inline-flex cursor-pointer items-center">
+                          <input
+                            type="checkbox"
+                            checked={leaveSettings?.settings.allowFutureDated !== false}
+                            onChange={(e) => setLeaveSettings(prev => prev ? {
+                              ...prev,
+                              settings: { ...prev.settings, allowFutureDated: e.target.checked }
+                            } : null)}
+                            className="peer sr-only"
+                          />
+                          <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-slate-600 dark:bg-slate-700 dark:peer-focus:ring-blue-800"></div>
+                        </label>
+                      </div>
+                      {leaveSettings?.settings.allowFutureDated !== false && (
+                        <div className="mt-4">
+                          <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                            Maximum advance days
+                          </label>
+                          <input
+                            type="number"
+                            value={leaveSettings?.settings.maxAdvanceDays || 90}
+                            onChange={(e) => setLeaveSettings(prev => prev ? {
+                              ...prev,
+                              settings: { ...prev.settings, maxAdvanceDays: Number(e.target.value) }
+                            } : null)}
+                            className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={handleSaveLeaveGeneralSettings}
+                      disabled={saving}
+                      className="w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:from-blue-600 hover:to-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {saving ? 'Saving...' : 'Save General Settings'}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
