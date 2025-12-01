@@ -139,6 +139,47 @@ const findMatchingShifts = (inTime, shifts) => {
 };
 
 /**
+ * Find matching shifts based on out-time (for secondary matching)
+ * @param {Date} outTime - Employee's out-time
+ * @param {Array} shifts - Array of shift objects (already matched by inTime)
+ * @param {Number} toleranceMinutes - Tolerance in minutes for matching end time (default 30)
+ * @returns {Array} - Array of matching shifts with match details
+ */
+const findMatchingShiftsByOutTime = (outTime, shifts, toleranceMinutes = 30) => {
+  if (!outTime) return [];
+  
+  const matches = [];
+  const outMinutes = outTime.getHours() * 60 + outTime.getMinutes();
+
+  for (const shift of shifts) {
+    const shiftEndMinutes = timeToMinutes(shift.endTime);
+    
+    // Calculate difference (handle overnight shifts)
+    let difference = Math.abs(outMinutes - shiftEndMinutes);
+    
+    // If difference is more than 12 hours, consider it might be next day
+    if (difference > 12 * 60) {
+      difference = 24 * 60 - difference;
+    }
+    
+    // If within tolerance, it's a match
+    if (difference <= toleranceMinutes) {
+      matches.push({
+        shiftId: shift._id,
+        shiftName: shift.name,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        differenceMinutes: difference,
+        matchReason: `Out-time ${outTime.toLocaleTimeString()} matches shift ${shift.name} end time (${shift.endTime}) with ${difference}min difference`,
+      });
+    }
+  }
+
+  // Sort by closest match (smallest difference)
+  return matches.sort((a, b) => a.differenceMinutes - b.differenceMinutes);
+};
+
+/**
  * Calculate late-in minutes
  * @param {Date} inTime - Actual in-time
  * @param {String} shiftStartTime - Shift start time (HH:mm)
@@ -204,7 +245,7 @@ const detectAndAssignShift = async (employeeNumber, date, inTime, outTime = null
       };
     }
 
-    // Find matching shifts
+    // PRIMARY: Find matching shifts based on in-time
     const matchingShifts = findMatchingShifts(inTime, shifts);
 
     // Case 1: Pre-scheduled shift - use it directly
@@ -226,7 +267,7 @@ const detectAndAssignShift = async (employeeNumber, date, inTime, outTime = null
       };
     }
 
-    // Case 2: Single match - auto assign
+    // Case 2: Single match by inTime - auto assign
     if (matchingShifts.length === 1) {
       const match = matchingShifts[0];
       const shift = shifts.find(s => s._id.toString() === match.shiftId.toString());
@@ -254,24 +295,104 @@ const detectAndAssignShift = async (employeeNumber, date, inTime, outTime = null
       };
     }
 
-    // Case 3: Multiple matches or no matches - flag as confused
-    if (matchingShifts.length > 1 || matchingShifts.length === 0) {
-      // Create or update confused shift record
+    // Case 3: Multiple matches by inTime - SECONDARY: Use outTime to narrow down
+    if (matchingShifts.length > 1) {
+      // If outTime is available, use it to find the best match
+      if (outTime) {
+        // Get the actual shift objects for the matches
+        const matchedShiftObjects = shifts.filter(s => 
+          matchingShifts.some(m => m.shiftId.toString() === s._id.toString())
+        );
+        
+        // Find matching shifts based on outTime
+        const outTimeMatches = findMatchingShiftsByOutTime(outTime, matchedShiftObjects);
+        
+        // If we have a clear match by outTime, use it
+        if (outTimeMatches.length === 1) {
+          const bestMatch = outTimeMatches[0];
+          const shift = shifts.find(s => s._id.toString() === bestMatch.shiftId.toString());
+          
+          if (shift) {
+            const lateInMinutes = calculateLateIn(inTime, shift.startTime, shift.gracePeriod || 15);
+            const earlyOutMinutes = calculateEarlyOut(outTime, shift.endTime);
+
+            return {
+              success: true,
+              assignedShift: shift._id,
+              shiftName: shift.name,
+              source: `${source}_outtime_match`,
+              lateInMinutes: lateInMinutes > 0 ? lateInMinutes : null,
+              earlyOutMinutes: earlyOutMinutes && earlyOutMinutes > 0 ? earlyOutMinutes : null,
+              isLateIn: lateInMinutes > 0,
+              isEarlyOut: earlyOutMinutes && earlyOutMinutes > 0,
+              expectedHours: shift.duration,
+              matchMethod: 'inTime_and_outTime',
+            };
+          }
+        }
+        
+        // If multiple outTime matches or no outTime match, still confused
+        // But we have narrowed it down - use the closest match by outTime
+        if (outTimeMatches.length > 0) {
+          // Use the closest match (already sorted by difference)
+          const bestMatch = outTimeMatches[0];
+          const shift = shifts.find(s => s._id.toString() === bestMatch.shiftId.toString());
+          
+          if (shift) {
+            const lateInMinutes = calculateLateIn(inTime, shift.startTime, shift.gracePeriod || 15);
+            const earlyOutMinutes = calculateEarlyOut(outTime, shift.endTime);
+
+            // Still create confused shift but assign the best match
+            const confusedShiftData = {
+              employeeNumber: employeeNumber.toUpperCase(),
+              date: date,
+              inTime: inTime,
+              outTime: outTime,
+              possibleShifts: outTimeMatches.map(m => ({
+                shiftId: m.shiftId,
+                shiftName: m.shiftName,
+                startTime: m.startTime,
+                endTime: m.endTime,
+                matchReason: m.matchReason,
+              })),
+              status: 'pending',
+              requiresManualSelection: true,
+            };
+
+            await ConfusedShift.findOneAndUpdate(
+              { employeeNumber: employeeNumber.toUpperCase(), date: date },
+              confusedShiftData,
+              { upsert: true, new: true }
+            );
+
+            return {
+              success: true,
+              assignedShift: shift._id,
+              shiftName: shift.name,
+              source: `${source}_best_match`,
+              lateInMinutes: lateInMinutes > 0 ? lateInMinutes : null,
+              earlyOutMinutes: earlyOutMinutes && earlyOutMinutes > 0 ? earlyOutMinutes : null,
+              isLateIn: lateInMinutes > 0,
+              isEarlyOut: earlyOutMinutes && earlyOutMinutes > 0,
+              expectedHours: shift.duration,
+              matchMethod: 'inTime_and_outTime_best_match',
+              confused: true,
+              requiresManualSelection: true,
+              possibleShifts: outTimeMatches,
+            };
+          }
+        }
+      }
+      
+      // No outTime or outTime didn't help - create confused shift
       const confusedShiftData = {
         employeeNumber: employeeNumber.toUpperCase(),
         date: date,
         inTime: inTime,
         outTime: outTime,
-        possibleShifts: matchingShifts.length > 0 
-          ? matchingShifts 
-          : shifts.map(s => ({
-              shiftId: s._id,
-              shiftName: s.name,
-              startTime: s.startTime,
-              endTime: s.endTime,
-              matchReason: `No clear match - in-time ${inTime.toLocaleTimeString()} doesn't match any shift window`,
-            })),
+        possibleShifts: matchingShifts,
         status: 'pending',
+        requiresManualSelection: outTime ? false : true, // If outTime exists but didn't help, still need manual selection
       };
 
       await ConfusedShift.findOneAndUpdate(
@@ -283,15 +404,50 @@ const detectAndAssignShift = async (employeeNumber, date, inTime, outTime = null
       return {
         success: false,
         confused: true,
-        message: matchingShifts.length > 1 
-          ? 'Multiple shifts match - requires manual review'
-          : 'No shift matches - requires manual review',
-        possibleShifts: matchingShifts.length > 0 ? matchingShifts : shifts.map(s => ({
+        message: outTime 
+          ? 'Multiple shifts match by inTime and outTime - requires manual review'
+          : 'Multiple shifts match by inTime - outTime needed for better matching',
+        possibleShifts: matchingShifts,
+        requiresManualSelection: true,
+      };
+    }
+
+    // Case 4: No matches by inTime - flag as confused
+    if (matchingShifts.length === 0) {
+      // Create or update confused shift record
+      const confusedShiftData = {
+        employeeNumber: employeeNumber.toUpperCase(),
+        date: date,
+        inTime: inTime,
+        outTime: outTime,
+        possibleShifts: shifts.map(s => ({
+              shiftId: s._id,
+              shiftName: s.name,
+              startTime: s.startTime,
+              endTime: s.endTime,
+              matchReason: `No clear match - in-time ${inTime.toLocaleTimeString()} doesn't match any shift window`,
+            })),
+        status: 'pending',
+        requiresManualSelection: true,
+      };
+
+      await ConfusedShift.findOneAndUpdate(
+        { employeeNumber: employeeNumber.toUpperCase(), date: date },
+        confusedShiftData,
+        { upsert: true, new: true }
+      );
+
+      return {
+        success: false,
+        confused: true,
+        message: 'No shift matches by inTime - requires manual review',
+        possibleShifts: shifts.map(s => ({
           shiftId: s._id,
           shiftName: s.name,
           startTime: s.startTime,
           endTime: s.endTime,
         })),
+        requiresManualSelection: true,
       };
     }
 
@@ -552,6 +708,7 @@ module.exports = {
   resolveConfusedShift,
   getShiftsForEmployee,
   findMatchingShifts,
+  findMatchingShiftsByOutTime,
   calculateLateIn,
   calculateEarlyOut,
   isWithinShiftWindow,

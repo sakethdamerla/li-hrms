@@ -50,6 +50,15 @@ const confusedShiftSchema = new mongoose.Schema(
       ref: 'Shift',
       default: null,
     },
+    requiresManualSelection: {
+      type: Boolean,
+      default: false, // True if HOD must manually select shift
+    },
+    selectedShiftId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Shift',
+      default: null, // Shift selected by HOD when requiresManualSelection is true
+    },
     reviewedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

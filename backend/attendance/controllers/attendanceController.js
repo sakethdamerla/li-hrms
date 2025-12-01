@@ -199,6 +199,10 @@ exports.getAttendanceCalendar = async (req, res) => {
         lateInMinutes: record.lateInMinutes || null,
         earlyOutMinutes: record.earlyOutMinutes || null,
         expectedHours: record.expectedHours || null,
+        otHours: record.otHours || 0,
+        extraHours: record.extraHours || 0,
+        permissionHours: record.permissionHours || 0,
+        permissionCount: record.permissionCount || 0,
         hasLeave: hasLeave,
         leaveInfo: leaveMap[record.date] || null,
         hasOD: hasOD,
@@ -268,9 +272,16 @@ exports.getAttendanceList = async (req, res) => {
       });
     }
 
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date and end date are required',
+      });
+    }
+
     const query = {
       employeeNumber: employeeNumber.toUpperCase(),
-      date: { $gte: startDate, $lte: endDateStr },
+      date: { $gte: startDate, $lte: endDate },
     };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -690,6 +701,10 @@ exports.getMonthlyAttendance = async (req, res) => {
           isEarlyOut: record.isEarlyOut,
           lateInMinutes: record.lateInMinutes,
           earlyOutMinutes: record.earlyOutMinutes,
+          otHours: record.otHours || 0,
+          extraHours: record.extraHours || 0,
+          permissionHours: record.permissionHours || 0,
+          permissionCount: record.permissionCount || 0,
           hasLeave: hasLeave,
           leaveInfo: leaveInfo,
           hasOD: hasOD,
@@ -742,6 +757,125 @@ exports.getMonthlyAttendance = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to fetch monthly attendance',
+    });
+  }
+};
+
+/**
+ * @desc    Update outTime for attendance record (for PARTIAL attendance)
+ * @route   PUT /api/attendance/:employeeNumber/:date/outtime
+ * @access  Private (Super Admin, Sub Admin, HR, HOD)
+ */
+exports.updateOutTime = async (req, res) => {
+  try {
+    const { employeeNumber, date } = req.params;
+    const { outTime } = req.body;
+
+    if (!outTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Out time is required',
+      });
+    }
+
+    // Get attendance record
+    const attendanceRecord = await AttendanceDaily.findOne({
+      employeeNumber: employeeNumber.toUpperCase(),
+      date: date,
+    }).populate('shiftId');
+
+    if (!attendanceRecord) {
+      return res.status(404).json({
+        success: false,
+        message: 'Attendance record not found',
+      });
+    }
+
+    if (!attendanceRecord.inTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Attendance record has no in-time',
+      });
+    }
+
+    // Ensure outTime is a Date object
+    const outTimeDate = outTime instanceof Date ? outTime : new Date(outTime);
+
+    if (isNaN(outTimeDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid out time format',
+      });
+    }
+
+    // Update outTime
+    attendanceRecord.outTime = outTimeDate;
+    attendanceRecord.status = attendanceRecord.status === 'PARTIAL' ? 'PRESENT' : attendanceRecord.status;
+
+    // Re-run shift detection with new outTime
+    const { detectAndAssignShift } = require('../../shifts/services/shiftDetectionService');
+    const detectionResult = await detectAndAssignShift(
+      employeeNumber.toUpperCase(),
+      date,
+      attendanceRecord.inTime,
+      outTimeDate
+    );
+
+    if (detectionResult.success && detectionResult.assignedShift) {
+      attendanceRecord.shiftId = detectionResult.assignedShift;
+      attendanceRecord.lateInMinutes = detectionResult.lateInMinutes;
+      attendanceRecord.earlyOutMinutes = detectionResult.earlyOutMinutes;
+      attendanceRecord.isLateIn = detectionResult.isLateIn || false;
+      attendanceRecord.isEarlyOut = detectionResult.isEarlyOut || false;
+      attendanceRecord.expectedHours = detectionResult.expectedHours;
+    }
+
+    // Check and resolve ConfusedShift if exists
+    const ConfusedShift = require('../../shifts/model/ConfusedShift');
+    const confusedShift = await ConfusedShift.findOne({
+      employeeNumber: employeeNumber.toUpperCase(),
+      date: date,
+      status: 'pending',
+    });
+
+    if (confusedShift && detectionResult.success && detectionResult.assignedShift) {
+      // Resolve ConfusedShift
+      confusedShift.status = 'resolved';
+      confusedShift.assignedShiftId = detectionResult.assignedShift;
+      confusedShift.reviewedBy = req.user?.userId || req.user?._id;
+      confusedShift.reviewedAt = new Date();
+      await confusedShift.save();
+    }
+
+    await attendanceRecord.save();
+
+    // Detect extra hours
+    const { detectExtraHours } = require('../services/extraHoursService');
+    await detectExtraHours(employeeNumber.toUpperCase(), date);
+
+    // Recalculate monthly summary
+    const { recalculateOnAttendanceUpdate } = require('../services/summaryCalculationService');
+    await recalculateOnAttendanceUpdate(employeeNumber.toUpperCase(), date);
+
+    const updatedRecord = await AttendanceDaily.findOne({
+      employeeNumber: employeeNumber.toUpperCase(),
+      date: date,
+    })
+      .populate('shiftId', 'name startTime endTime duration payableShifts')
+      .populate('employeeId', 'emp_no employee_name department designation');
+
+    res.status(200).json({
+      success: true,
+      message: 'Out time updated successfully',
+      data: updatedRecord,
+    });
+
+  } catch (error) {
+    console.error('Error updating out time:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating out time',
+      error: error.message,
     });
   }
 };

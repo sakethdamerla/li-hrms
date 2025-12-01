@@ -102,6 +102,14 @@ const AttendanceIcon = ({ className, ...props }: IconProps) => (
   </svg>
 );
 
+const OTPermissionIcon = ({ className, ...props }: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+    <path d="M9 12l2 2 4-4" />
+  </svg>
+);
+
 const ProfileIcon = ({ className, ...props }: IconProps) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -127,6 +135,7 @@ const navItems: NavItem[] = [
   { href: '/superadmin/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { href: '/superadmin/employees', label: 'Employees', icon: EmployeesIcon },
   { href: '/superadmin/attendance', label: 'Attendance', icon: AttendanceIcon },
+  { href: '/superadmin/ot-permissions', label: 'OT & Permissions', icon: OTPermissionIcon },
   { href: '/superadmin/confused-shifts', label: 'Confused Shifts', icon: CalendarIcon },
   { href: '/superadmin/leaves', label: 'Leave & OD', icon: CalendarIcon },
   { href: '/superadmin/loans', label: 'Loan & Salary Advance', icon: CalendarIcon },

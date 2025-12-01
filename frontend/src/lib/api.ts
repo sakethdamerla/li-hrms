@@ -1220,5 +1220,147 @@ export const api = {
       body: JSON.stringify({ startDate, endDate }),
     });
   },
+
+  // ==========================================
+  // OVERTIME (OT) APIs
+  // ==========================================
+
+  // Get OT requests
+  getOTRequests: async (filters?: { employeeId?: string; employeeNumber?: string; date?: string; status?: string; startDate?: string; endDate?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.employeeId) params.append('employeeId', filters.employeeId);
+    if (filters?.employeeNumber) params.append('employeeNumber', filters.employeeNumber);
+    if (filters?.date) params.append('date', filters.date);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    return apiRequest<any>(`/ot?${params.toString()}`);
+  },
+
+  // Get single OT request
+  getOTRequest: async (id: string) => {
+    return apiRequest<any>(`/ot/${id}`);
+  },
+
+  // Create OT request
+  createOT: async (data: { employeeId: string; employeeNumber: string; date: string; otOutTime: string; shiftId?: string; manuallySelectedShiftId?: string; comments?: string }) => {
+    return apiRequest<any>('/ot', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Approve OT request
+  approveOT: async (id: string) => {
+    return apiRequest<any>(`/ot/${id}/approve`, {
+      method: 'PUT',
+    });
+  },
+
+  // Reject OT request
+  rejectOT: async (id: string, reason?: string) => {
+    return apiRequest<any>(`/ot/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  // Check ConfusedShift for employee date
+  checkConfusedShift: async (employeeNumber: string, date: string) => {
+    return apiRequest<any>(`/ot/check-confused/${employeeNumber}/${date}`);
+  },
+
+  // ==========================================
+  // PERMISSION APIs
+  // ==========================================
+
+  // Get permission requests
+  getPermissions: async (filters?: { employeeId?: string; employeeNumber?: string; date?: string; status?: string; startDate?: string; endDate?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.employeeId) params.append('employeeId', filters.employeeId);
+    if (filters?.employeeNumber) params.append('employeeNumber', filters.employeeNumber);
+    if (filters?.date) params.append('date', filters.date);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    return apiRequest<any>(`/permissions?${params.toString()}`);
+  },
+
+  // Get single permission request
+  getPermission: async (id: string) => {
+    return apiRequest<any>(`/permissions/${id}`);
+  },
+
+  // Create permission request
+  createPermission: async (data: { employeeId: string; employeeNumber: string; date: string; permissionStartTime: string; permissionEndTime: string; purpose: string; comments?: string }) => {
+    return apiRequest<any>('/permissions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Approve permission request
+  approvePermission: async (id: string) => {
+    return apiRequest<any>(`/permissions/${id}/approve`, {
+      method: 'PUT',
+    });
+  },
+
+  // Reject permission request
+  rejectPermission: async (id: string, reason?: string) => {
+    return apiRequest<any>(`/permissions/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  // Get QR code for permission
+  getPermissionQR: async (id: string) => {
+    return apiRequest<any>(`/permissions/${id}/qr`);
+  },
+
+  // Get outpass by QR code (public - no auth required)
+  getOutpassByQR: async (qrCode: string) => {
+    // Public endpoint - don't send auth token
+    const url = `${API_BASE_URL}/permissions/outpass/${qrCode}`;
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'An error occurred',
+          error: data.error || data.message || `HTTP ${response.status}`,
+        };
+      }
+
+      return {
+        success: true,
+        ...data,
+      };
+    } catch (error) {
+      console.error(`[API Error] GET ${url}`, error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error occurred',
+        error: error instanceof Error ? error.message : 'Network error occurred',
+      };
+    }
+  },
+
+  // Update outTime for attendance
+  updateAttendanceOutTime: async (employeeNumber: string, date: string, outTime: string) => {
+    return apiRequest<any>(`/attendance/${employeeNumber}/${date}/outtime`, {
+      method: 'PUT',
+      body: JSON.stringify({ outTime }),
+    });
+  },
 };
 

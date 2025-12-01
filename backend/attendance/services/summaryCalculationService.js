@@ -132,10 +132,50 @@ async function calculateMonthlySummary(employeeId, emp_no, year, monthNumber) {
     totalPayableShifts += totalODDays;
     summary.totalPayableShifts = Math.round(totalPayableShifts * 100) / 100; // Round to 2 decimals
 
-    // 7. Update last calculated timestamp
+    // 7. Calculate total OT hours (from approved OT requests)
+    const OT = require('../../overtime/model/OT');
+    const approvedOTs = await OT.find({
+      employeeId,
+      status: 'approved',
+      date: { $gte: startDateStr, $lte: endDateStr },
+      isActive: true,
+    });
+
+    let totalOTHours = 0;
+    for (const ot of approvedOTs) {
+      totalOTHours += ot.otHours || 0;
+    }
+    summary.totalOTHours = Math.round(totalOTHours * 100) / 100; // Round to 2 decimals
+
+    // 8. Calculate total extra hours (from attendance records)
+    let totalExtraHours = 0;
+    for (const record of attendanceRecords) {
+      totalExtraHours += record.extraHours || 0;
+    }
+    summary.totalExtraHours = Math.round(totalExtraHours * 100) / 100; // Round to 2 decimals
+
+    // 9. Calculate total permission hours and count
+    const Permission = require('../../permissions/model/Permission');
+    const approvedPermissions = await Permission.find({
+      employeeId,
+      status: 'approved',
+      date: { $gte: startDateStr, $lte: endDateStr },
+      isActive: true,
+    });
+
+    let totalPermissionHours = 0;
+    let totalPermissionCount = 0;
+    for (const permission of approvedPermissions) {
+      totalPermissionHours += permission.permissionHours || 0;
+      totalPermissionCount += 1;
+    }
+    summary.totalPermissionHours = Math.round(totalPermissionHours * 100) / 100; // Round to 2 decimals
+    summary.totalPermissionCount = totalPermissionCount;
+
+    // 10. Update last calculated timestamp
     summary.lastCalculatedAt = new Date();
 
-    // 8. Save summary
+    // 11. Save summary
     await summary.save();
 
     return summary;

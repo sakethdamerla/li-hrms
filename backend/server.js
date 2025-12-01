@@ -83,6 +83,14 @@ app.use('/api/loans', loanRoutes);
 const attendanceRoutes = require('./attendance/index.js');
 app.use('/api/attendance', attendanceRoutes);
 
+// Overtime routes
+const otRoutes = require('./overtime/index.js');
+app.use('/api/ot', otRoutes);
+
+// Permissions routes
+const permissionRoutes = require('./permissions/index.js');
+app.use('/api/permissions', permissionRoutes);
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({

@@ -88,6 +88,34 @@ const monthlyAttendanceSummarySchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Overtime hours (from approved OT requests)
+    totalOTHours: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // Extra hours worked without OT request (auto-detected)
+    totalExtraHours: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // Permission hours (total hours of permissions taken)
+    totalPermissionHours: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // Permission count (number of permissions taken)
+    totalPermissionCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     // Last calculated/updated timestamp
     lastCalculatedAt: {
       type: Date,

@@ -42,7 +42,7 @@ export default function SuperAdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [currentDate] = useState(new Date());
-
+  
   useEffect(() => {
     loadDashboardData();
   }, []);

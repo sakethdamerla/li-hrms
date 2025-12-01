@@ -165,6 +165,12 @@ export default function AttendancePage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedDesignation, setSelectedDesignation] = useState<string>('');
   const [filteredMonthlyData, setFilteredMonthlyData] = useState<MonthlyAttendanceData[]>([]);
+  
+  // OutTime dialog state
+  const [showOutTimeDialog, setShowOutTimeDialog] = useState(false);
+  const [selectedRecordForOutTime, setSelectedRecordForOutTime] = useState<{ employee: Employee; date: string } | null>(null);
+  const [outTimeValue, setOutTimeValue] = useState('');
+  const [updatingOutTime, setUpdatingOutTime] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1;
@@ -426,6 +432,43 @@ export default function AttendancePage() {
       setError(err.message || 'An error occurred during shift sync');
     } finally {
       setSyncingShifts(false);
+    }
+  };
+
+  const handleUpdateOutTime = async () => {
+    if (!selectedRecordForOutTime || !outTimeValue) {
+      alert('Please enter out time');
+      return;
+    }
+
+    try {
+      setUpdatingOutTime(true);
+      setError('');
+      setSuccess('');
+      
+      // Format datetime for API
+      const outTimeDate = new Date(outTimeValue);
+      const isoString = outTimeDate.toISOString();
+      
+      const response = await api.updateAttendanceOutTime(
+        selectedRecordForOutTime.employee.emp_no,
+        selectedRecordForOutTime.date,
+        isoString
+      );
+      
+      if (response.success) {
+        setSuccess('Out time updated successfully. Shift will be automatically assigned.');
+        setShowOutTimeDialog(false);
+        setSelectedRecordForOutTime(null);
+        setOutTimeValue('');
+        loadMonthlyAttendance();
+      } else {
+        setError(response.message || 'Failed to update out time');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while updating out time');
+    } finally {
+      setUpdatingOutTime(false);
     }
   };
 
@@ -709,6 +752,15 @@ export default function AttendancePage() {
                     <th className="w-[80px] border-r border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-blue-50 dark:bg-blue-900/20">
                       Days Present
                     </th>
+                    <th className="w-[80px] border-r border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-orange-50 dark:bg-orange-900/20">
+                      OT Hours
+                    </th>
+                    <th className="w-[80px] border-r border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-purple-50 dark:bg-purple-900/20">
+                      Extra Hours
+                    </th>
+                    <th className="w-[80px] border-r border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-cyan-50 dark:bg-cyan-900/20">
+                      Permissions
+                    </th>
                     <th className="w-[80px] border-r-0 border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-green-50 dark:bg-green-900/20">
                       Payable Shifts
                     </th>
@@ -735,6 +787,15 @@ export default function AttendancePage() {
                           <td className="border-r border-slate-200 bg-blue-50 px-2 py-2 text-center dark:border-slate-700 dark:bg-blue-900/20">
                             <div className="h-4 w-8 mx-auto animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
                           </td>
+                          <td className="border-r border-slate-200 bg-orange-50 px-2 py-2 text-center dark:border-slate-700 dark:bg-orange-900/20">
+                            <div className="h-4 w-8 mx-auto animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
+                          </td>
+                          <td className="border-r border-slate-200 bg-purple-50 px-2 py-2 text-center dark:border-slate-700 dark:bg-purple-900/20">
+                            <div className="h-4 w-8 mx-auto animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
+                          </td>
+                          <td className="border-r border-slate-200 bg-cyan-50 px-2 py-2 text-center dark:border-slate-700 dark:bg-cyan-900/20">
+                            <div className="h-4 w-8 mx-auto animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
+                          </td>
                           <td className="border-r-0 border-slate-200 bg-green-50 px-2 py-2 text-center dark:border-slate-700 dark:bg-green-900/20">
                             <div className="h-4 w-8 mx-auto animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
                           </td>
@@ -745,7 +806,7 @@ export default function AttendancePage() {
                     <>
                       {filteredMonthlyData.length === 0 ? (
                         <tr>
-                          <td colSpan={daysArray.length + 3} className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                          <td colSpan={daysArray.length + 5} className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
                             No employees found matching the selected filters.
                           </td>
                         </tr>
@@ -820,6 +881,15 @@ export default function AttendancePage() {
                             })}
                             <td className="border-r border-slate-200 bg-blue-50 px-2 py-2 text-center text-[11px] font-bold text-blue-700 dark:border-slate-700 dark:bg-blue-900/20 dark:text-blue-300">
                               {daysPresent}
+                            </td>
+                            <td className="border-r border-slate-200 bg-orange-50 px-2 py-2 text-center text-[11px] font-bold text-orange-700 dark:border-slate-700 dark:bg-orange-900/20 dark:text-orange-300">
+                              {Object.values(item.dailyAttendance).reduce((sum, record) => sum + (record?.otHours || 0), 0).toFixed(1)}
+                            </td>
+                            <td className="border-r border-slate-200 bg-purple-50 px-2 py-2 text-center text-[11px] font-bold text-purple-700 dark:border-slate-700 dark:bg-purple-900/20 dark:text-purple-300">
+                              {Object.values(item.dailyAttendance).reduce((sum, record) => sum + (record?.extraHours || 0), 0).toFixed(1)}
+                            </td>
+                            <td className="border-r border-slate-200 bg-cyan-50 px-2 py-2 text-center text-[11px] font-bold text-cyan-700 dark:border-slate-700 dark:bg-cyan-900/20 dark:text-cyan-300">
+                              {Object.values(item.dailyAttendance).reduce((sum, record) => sum + (record?.permissionCount || 0), 0)}
                             </td>
                             <td className="border-r-0 border-slate-200 bg-green-50 px-2 py-2 text-center text-[11px] font-bold text-green-700 dark:border-slate-700 dark:bg-green-900/20 dark:text-green-300">
                               {payableShifts.toFixed(2)}
@@ -991,6 +1061,76 @@ export default function AttendancePage() {
         </div>
       )}
 
+      {/* OutTime Dialog for PARTIAL Attendance */}
+      {showOutTimeDialog && selectedRecordForOutTime && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Enter Out Time</h3>
+              <button
+                onClick={() => {
+                  setShowOutTimeDialog(false);
+                  setSelectedRecordForOutTime(null);
+                  setOutTimeValue('');
+                }}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                <div className="text-sm font-medium text-slate-900 dark:text-white">
+                  {selectedRecordForOutTime.employee.employee_name}
+                </div>
+                <div className="text-xs text-slate-600 dark:text-slate-400">
+                  {selectedRecordForOutTime.employee.emp_no} • {selectedRecordForOutTime.date}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Out Time *
+                </label>
+                <input
+                  type="datetime-local"
+                  value={outTimeValue}
+                  onChange={(e) => setOutTimeValue(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  required
+                />
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Enter the logout time. Shift will be automatically assigned based on in-time and out-time.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleUpdateOutTime}
+                  disabled={!outTimeValue || updatingOutTime}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:from-blue-600 hover:to-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {updatingOutTime ? 'Updating...' : 'Update Out Time'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowOutTimeDialog(false);
+                    setSelectedRecordForOutTime(null);
+                    setOutTimeValue('');
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detail Dialog */}
       {showDetailDialog && attendanceDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -1056,6 +1196,30 @@ export default function AttendancePage() {
                     <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Early Out</label>
                     <div className="mt-1 text-sm font-semibold text-orange-600 dark:text-orange-400">
                       -{attendanceDetail.earlyOutMinutes} minutes
+                    </div>
+                  </div>
+                )}
+                {attendanceDetail.otHours && attendanceDetail.otHours > 0 && (
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">OT Hours</label>
+                    <div className="mt-1 text-sm font-semibold text-orange-600 dark:text-orange-400">
+                      {attendanceDetail.otHours.toFixed(2)} hrs
+                    </div>
+                  </div>
+                )}
+                {attendanceDetail.extraHours && attendanceDetail.extraHours > 0 && (
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Extra Hours</label>
+                    <div className="mt-1 text-sm font-semibold text-purple-600 dark:text-purple-400">
+                      {attendanceDetail.extraHours.toFixed(2)} hrs
+                    </div>
+                  </div>
+                )}
+                {attendanceDetail.permissionHours && attendanceDetail.permissionHours > 0 && (
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Permission Hours</label>
+                    <div className="mt-1 text-sm font-semibold text-cyan-600 dark:text-cyan-400">
+                      {attendanceDetail.permissionHours.toFixed(2)} hrs ({attendanceDetail.permissionCount || 0} permissions)
                     </div>
                   </div>
                 )}

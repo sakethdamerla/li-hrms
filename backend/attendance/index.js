@@ -41,6 +41,9 @@ router.get('/detail', attendanceController.getAttendanceDetail);
 router.get('/employees', attendanceController.getEmployeesWithAttendance);
 router.get('/monthly', attendanceController.getMonthlyAttendance);
 
+// Update outTime for PARTIAL attendance (Super Admin, Sub Admin, HR, HOD)
+router.put('/:employeeNumber/:date/outtime', authorize('super_admin', 'sub_admin', 'hr', 'hod'), attendanceController.updateOutTime);
+
 // Settings Routes (Super Admin, Sub Admin only)
 router.get('/settings', attendanceSettingsController.getSettings);
 router.put('/settings', authorize('super_admin', 'sub_admin'), attendanceSettingsController.updateSettings);

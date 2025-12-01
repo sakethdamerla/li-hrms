@@ -81,6 +81,24 @@ const attendanceDailySchema = new mongoose.Schema(
       type: Number,
       default: null, // Expected hours based on shift duration
     },
+    // Overtime and extra hours
+    otHours: {
+      type: Number,
+      default: 0, // Overtime hours (from approved OT request)
+    },
+    extraHours: {
+      type: Number,
+      default: 0, // Extra hours worked without OT request (auto-detected)
+    },
+    // Permission fields
+    permissionHours: {
+      type: Number,
+      default: 0, // Total permission hours for the day
+    },
+    permissionCount: {
+      type: Number,
+      default: 0, // Number of permissions taken on this day
+    },
   },
   {
     timestamps: true,
@@ -114,10 +132,11 @@ attendanceDailySchema.pre('save', async function() {
   }
 });
 
-// Post-save hook to recalculate monthly summary
+// Post-save hook to recalculate monthly summary and detect extra hours
 attendanceDailySchema.post('save', async function() {
   try {
     const { recalculateOnAttendanceUpdate } = require('../services/summaryCalculationService');
+    const { detectExtraHours } = require('../services/extraHoursService');
     
     // If shiftId was modified, we need to recalculate the entire month
     if (this.isModified('shiftId')) {
@@ -136,9 +155,17 @@ attendanceDailySchema.post('save', async function() {
       // Regular update - just recalculate for that date's month
       await recalculateOnAttendanceUpdate(this.employeeNumber, this.date);
     }
+
+    // Detect extra hours if outTime or shiftId was modified
+    if (this.isModified('outTime') || this.isModified('shiftId')) {
+      if (this.outTime && this.shiftId) {
+        // Only detect if we have both outTime and shiftId
+        await detectExtraHours(this.employeeNumber, this.date);
+      }
+    }
   } catch (error) {
     // Don't throw - this is a background operation
-    console.error('Error recalculating monthly summary:', error);
+    console.error('Error in post-save hook:', error);
   }
 });
 
