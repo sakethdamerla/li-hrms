@@ -196,7 +196,7 @@ const validateOTRequest = async (employeeId, employeeNumber, date) => {
 };
 
 /**
- * Validate Permission request - check conflicts
+ * Validate Permission request - check conflicts and attendance
  * @param {String} employeeId - Employee ID
  * @param {String} employeeNumber - Employee number
  * @param {String} date - Date (YYYY-MM-DD)
@@ -205,6 +205,12 @@ const validateOTRequest = async (employeeId, employeeNumber, date) => {
 const validatePermissionRequest = async (employeeId, employeeNumber, date) => {
   const errors = [];
   const warnings = [];
+
+  // Check attendance (required for permission)
+  const attendanceCheck = await checkAttendanceExists(employeeNumber, date);
+  if (!attendanceCheck.hasAttendance) {
+    errors.push(attendanceCheck.message || 'No attendance record found or employee has no in-time for this date');
+  }
 
   // Check Leave conflict
   const leaveCheck = await checkLeaveConflict(employeeId, employeeNumber, date);
@@ -222,6 +228,7 @@ const validatePermissionRequest = async (employeeId, employeeNumber, date) => {
     isValid: errors.length === 0,
     errors: errors,
     warnings: warnings,
+    attendance: attendanceCheck.attendance,
     leave: leaveCheck.leave,
     od: odCheck.od,
   };

@@ -4,6 +4,70 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { QRCodeSVG } from 'qrcode.react';
 
+// Toast Notification Component
+interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+}
+
+const ToastNotification = ({ toast, onClose }: { toast: Toast; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const bgColors = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-blue-500',
+    warning: 'bg-yellow-500',
+  };
+
+  const icons = {
+    success: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+    ),
+    error: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    ),
+    info: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    warning: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    ),
+  };
+
+  return (
+    <div
+      className={`${bgColors[toast.type]} mb-2 flex items-center gap-3 rounded-lg px-4 py-3 text-white shadow-lg transition-all duration-300 animate-in slide-in-from-right`}
+    >
+      <div className="flex-shrink-0">{icons[toast.type]}</div>
+      <p className="flex-1 text-sm font-medium">{toast.message}</p>
+      <button
+        onClick={onClose}
+        className="flex-shrink-0 rounded p-1 hover:bg-white/20 transition-colors"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+};
+
 interface Employee {
   _id: string;
   emp_no: string;
@@ -93,6 +157,19 @@ export default function OTAndPermissionsPage() {
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [selectedQR, setSelectedQR] = useState<PermissionRequest | null>(null);
   
+  // Toast notifications
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  
+  // Toast helper functions
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+  
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+  
   // Form data
   const [otFormData, setOTFormData] = useState({
     employeeId: '',
@@ -156,7 +233,12 @@ export default function OTAndPermissionsPage() {
       ]);
       
       if (employeesRes.success) {
-        setEmployees(employeesRes.data || []);
+        const employeesList = employeesRes.data || [];
+        console.log('Loaded employees:', employeesList.length, employeesList);
+        setEmployees(employeesList);
+      } else {
+        console.error('Failed to load employees:', employeesRes);
+        showToast('Failed to load employees', 'error');
       }
       
       if (shiftsRes.success) {
@@ -170,7 +252,8 @@ export default function OTAndPermissionsPage() {
   };
 
   const handleEmployeeSelect = async (employeeId: string, employeeNumber: string, date: string) => {
-    const employee = employees.find(e => e._id === employeeId);
+    // Find employee by _id or emp_no
+    const employee = employees.find(e => (e._id === employeeId) || (e.emp_no === employeeId) || (e.emp_no === employeeNumber));
     setSelectedEmployee(employee || null);
     setValidationError('');
     setAttendanceData(null);
@@ -254,16 +337,21 @@ export default function OTAndPermissionsPage() {
   const handleCreateOT = async () => {
     if (!otFormData.employeeId || !otFormData.employeeNumber || !otFormData.date || !otFormData.otOutTime) {
       setValidationError('Please fill all required fields');
+      showToast('Please fill all required fields', 'error');
       return;
     }
 
     if (!attendanceData || !attendanceData.inTime) {
-      setValidationError('Attendance record not found or incomplete. OT cannot be created without attendance.');
+      const errorMsg = 'Attendance record not found or incomplete. OT cannot be created without attendance.';
+      setValidationError(errorMsg);
+      showToast(errorMsg, 'error');
       return;
     }
 
     if (confusedShift && !otFormData.manuallySelectedShiftId) {
-      setValidationError('Please select a shift (required for ConfusedShift)');
+      const errorMsg = 'Please select a shift (required for ConfusedShift)';
+      setValidationError(errorMsg);
+      showToast(errorMsg, 'error');
       return;
     }
 
@@ -272,19 +360,26 @@ export default function OTAndPermissionsPage() {
     try {
       const res = await api.createOT(otFormData);
       if (res.success) {
-        alert('OT request created successfully');
+        showToast('OT request created successfully', 'success');
         setShowOTDialog(false);
         resetOTForm();
         loadData();
       } else {
-        setValidationError(res.message || 'Error creating OT request');
+        const errorMsg = res.message || 'Error creating OT request';
+        setValidationError(errorMsg);
         if ((res as any).validationErrors && (res as any).validationErrors.length > 0) {
-          setValidationError((res as any).validationErrors.join('. '));
+          const validationMsg = (res as any).validationErrors.join('. ');
+          setValidationError(validationMsg);
+          showToast(validationMsg, 'error');
+        } else {
+          showToast(errorMsg, 'error');
         }
       }
     } catch (error: any) {
       console.error('Error creating OT:', error);
-      setValidationError(error.message || 'Error creating OT request');
+      const errorMsg = error.message || 'Error creating OT request';
+      setValidationError(errorMsg);
+      showToast(errorMsg, 'error');
     } finally {
       setLoading(false);
     }
@@ -293,8 +388,29 @@ export default function OTAndPermissionsPage() {
   const handleCreatePermission = async () => {
     if (!permissionFormData.employeeId || !permissionFormData.employeeNumber || !permissionFormData.date || 
         !permissionFormData.permissionStartTime || !permissionFormData.permissionEndTime || !permissionFormData.purpose) {
-      setPermissionValidationError('Please fill all required fields');
+      const errorMsg = 'Please fill all required fields';
+      setPermissionValidationError(errorMsg);
+      showToast(errorMsg, 'error');
       return;
+    }
+    
+    // Additional check: verify attendance exists
+    if (permissionFormData.employeeNumber && permissionFormData.date) {
+      try {
+        const attendanceRes = await api.getAttendanceDetail(permissionFormData.employeeNumber, permissionFormData.date);
+        if (!attendanceRes.success || !attendanceRes.data || !attendanceRes.data.inTime) {
+          const errorMsg = 'No attendance record found or employee has no in-time for this date. Permission cannot be created without attendance.';
+          setPermissionValidationError(errorMsg);
+          showToast(errorMsg, 'error');
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking attendance:', error);
+        const errorMsg = 'Failed to verify attendance. Please try again.';
+        setPermissionValidationError(errorMsg);
+        showToast(errorMsg, 'error');
+        return;
+      }
     }
 
     setLoading(true);
@@ -302,26 +418,33 @@ export default function OTAndPermissionsPage() {
     try {
       const res = await api.createPermission(permissionFormData);
       if (res.success) {
-        alert('Permission request created successfully');
+        showToast('Permission request created successfully', 'success');
         setShowPermissionDialog(false);
         resetPermissionForm();
         loadData();
       } else {
-        setPermissionValidationError(res.message || 'Error creating permission request');
+        const errorMsg = res.message || 'Error creating permission request';
+        setPermissionValidationError(errorMsg);
         if ((res as any).validationErrors && (res as any).validationErrors.length > 0) {
-          setPermissionValidationError((res as any).validationErrors.join('. '));
+          const validationMsg = (res as any).validationErrors.join('. ');
+          setPermissionValidationError(validationMsg);
+          showToast(validationMsg, 'error');
+        } else {
+          showToast(errorMsg, 'error');
         }
       }
     } catch (error: any) {
       console.error('Error creating permission:', error);
-      setPermissionValidationError(error.message || 'Error creating permission request');
+      const errorMsg = error.message || 'Error creating permission request';
+      setPermissionValidationError(errorMsg);
+      showToast(errorMsg, 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleApprove = async (type: 'ot' | 'permission', id: string) => {
-    if (!confirm(`Are you sure you want to approve this ${type === 'ot' ? 'OT' : 'permission'} request?`)) {
+    if (!window.confirm(`Are you sure you want to approve this ${type === 'ot' ? 'OT' : 'permission'} request?`)) {
       return;
     }
 
@@ -329,7 +452,7 @@ export default function OTAndPermissionsPage() {
     try {
       const res = type === 'ot' ? await api.approveOT(id) : await api.approvePermission(id);
       if (res.success) {
-        alert(`${type === 'ot' ? 'OT' : 'Permission'} request approved successfully`);
+        showToast(`${type === 'ot' ? 'OT' : 'Permission'} request approved successfully`, 'success');
         loadData();
         
         // If permission, show QR code
@@ -338,32 +461,32 @@ export default function OTAndPermissionsPage() {
           setShowQRDialog(true);
         }
       } else {
-        alert(res.message || `Error approving ${type} request`);
+        showToast(res.message || `Error approving ${type} request`, 'error');
       }
     } catch (error) {
       console.error(`Error approving ${type}:`, error);
-      alert(`Error approving ${type} request`);
+      showToast(`Error approving ${type} request`, 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleReject = async (type: 'ot' | 'permission', id: string) => {
-    const reason = prompt(`Enter rejection reason for this ${type === 'ot' ? 'OT' : 'permission'} request:`);
+    const reason = window.prompt(`Enter rejection reason for this ${type === 'ot' ? 'OT' : 'permission'} request:`);
     if (reason === null) return;
 
     setLoading(true);
     try {
       const res = type === 'ot' ? await api.rejectOT(id, reason) : await api.rejectPermission(id, reason);
       if (res.success) {
-        alert(`${type === 'ot' ? 'OT' : 'Permission'} request rejected`);
+        showToast(`${type === 'ot' ? 'OT' : 'Permission'} request rejected`, 'info');
         loadData();
       } else {
-        alert(res.message || `Error rejecting ${type} request`);
+        showToast(res.message || `Error rejecting ${type} request`, 'error');
       }
     } catch (error) {
       console.error(`Error rejecting ${type}:`, error);
-      alert(`Error rejecting ${type} request`);
+      showToast(`Error rejecting ${type} request`, 'error');
     } finally {
       setLoading(false);
     }
@@ -430,6 +553,13 @@ export default function OTAndPermissionsPage() {
 
   return (
     <div className="relative min-h-screen">
+      {/* Toast Notifications Container */}
+      <div className="fixed right-4 top-4 z-[100] flex flex-col gap-2">
+        {toasts.map((toast) => (
+          <ToastNotification key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
+        ))}
+      </div>
+
       {/* Background */}
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#e2e8f01f_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f01f_1px,transparent_1px)] bg-[size:28px_28px] dark:bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)]" />
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-emerald-50/40 via-teal-50/35 to-transparent dark:from-slate-900/60 dark:via-slate-900/65 dark:to-slate-900/80" />
@@ -442,7 +572,37 @@ export default function OTAndPermissionsPage() {
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Manage overtime requests and permission applications</p>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            {/* Tabs - Same size as attendance page toggle */}
+            <div className="flex rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
+              <button
+                onClick={() => setActiveTab('ot')}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                  activeTab === 'ot'
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30'
+                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                }`}
+              >
+                <svg className="mr-2 inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Overtime Requests ({otRequests.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('permissions')}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                  activeTab === 'permissions'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30'
+                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                }`}
+              >
+                <svg className="mr-2 inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Permissions ({permissions.length})
+              </button>
+            </div>
+            
             <button
               onClick={() => {
                 setActiveTab('ot');
@@ -468,36 +628,6 @@ export default function OTAndPermissionsPage() {
               Create Permission
             </button>
           </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="mb-6 flex gap-2 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-1 dark:border-slate-700 dark:bg-slate-900/80">
-          <button
-            onClick={() => setActiveTab('ot')}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              activeTab === 'ot'
-                ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30'
-                : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
-            }`}
-          >
-            <svg className="mr-2 inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Overtime Requests ({otRequests.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('permissions')}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              activeTab === 'permissions'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30'
-                : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
-            }`}
-          >
-            <svg className="mr-2 inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            Permissions ({permissions.length})
-          </button>
         </div>
 
         {/* Filters */}
@@ -766,21 +896,33 @@ export default function OTAndPermissionsPage() {
                   <select
                     value={otFormData.employeeId}
                     onChange={(e) => {
-                      const employee = employees.find(emp => emp._id === e.target.value);
-                      if (employee) {
-                        handleEmployeeSelect(employee._id, employee.emp_no, otFormData.date);
+                      const value = e.target.value;
+                      if (!value) return;
+                      
+                      // Find employee by _id or emp_no
+                      const employee = employees.find(emp => (emp._id === value) || (emp.emp_no === value));
+                      if (employee && employee.emp_no) {
+                        const employeeId = employee._id || employee.emp_no;
+                        handleEmployeeSelect(employeeId, employee.emp_no, otFormData.date);
                       }
                     }}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   >
                     <option value="">Select Employee</option>
-                    {employees
-                      .filter(emp => emp._id && emp.emp_no)
-                      .map((emp, index) => (
-                        <option key={`ot-employee-${emp._id || emp.emp_no || index}`} value={emp._id}>
-                          {emp.emp_no} - {emp.employee_name}
-                        </option>
-                      ))}
+                    {employees && employees.length > 0 ? (
+                      employees
+                        .filter(emp => emp.emp_no) // Only require emp_no, not _id
+                        .map((emp, index) => {
+                          const identifier = emp._id || emp.emp_no;
+                          return (
+                            <option key={`ot-employee-${identifier}-${index}`} value={identifier}>
+                              {emp.emp_no} - {emp.employee_name || 'Unknown'}
+                            </option>
+                          );
+                        })
+                    ) : (
+                      <option value="" disabled>No employees available</option>
+                    )}
                   </select>
                 </div>
 
@@ -1021,26 +1163,68 @@ export default function OTAndPermissionsPage() {
                   <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Employee *</label>
                   <select
                     value={permissionFormData.employeeId}
-                    onChange={(e) => {
-                      const employee = employees.find(emp => emp._id === e.target.value);
-                      if (employee) {
+                    onChange={async (e) => {
+                      const value = e.target.value;
+                      if (!value) {
                         setPermissionFormData(prev => ({
                           ...prev,
-                          employeeId: employee._id,
+                          employeeId: '',
+                          employeeNumber: '',
+                        }));
+                        setPermissionValidationError('');
+                        return;
+                      }
+                      
+                      // Find employee by _id or emp_no
+                      const employee = employees.find(emp => (emp._id === value) || (emp.emp_no === value));
+                      if (employee && employee.emp_no) {
+                        const employeeId = employee._id || employee.emp_no;
+                        setPermissionFormData(prev => ({
+                          ...prev,
+                          employeeId: employeeId,
                           employeeNumber: employee.emp_no,
                         }));
+                        setPermissionValidationError('');
+                        
+                        // Check attendance when employee is selected
+                        if (permissionFormData.date) {
+                          try {
+                            const attendanceRes = await api.getAttendanceDetail(employee.emp_no, permissionFormData.date);
+                            if (!attendanceRes.success || !attendanceRes.data || !attendanceRes.data.inTime) {
+                              setPermissionValidationError('No attendance record found or employee has no in-time for this date. Permission cannot be created without attendance.');
+                            } else {
+                              setPermissionValidationError('');
+                            }
+                          } catch (error) {
+                            console.error('Error checking attendance:', error);
+                          }
+                        }
+                      } else {
+                        setPermissionFormData(prev => ({
+                          ...prev,
+                          employeeId: '',
+                          employeeNumber: '',
+                        }));
+                        setPermissionValidationError('');
                       }
                     }}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   >
                     <option value="">Select Employee</option>
-                    {employees
-                      .filter(emp => emp._id && emp.emp_no)
-                      .map((emp, index) => (
-                        <option key={`perm-employee-${emp._id || emp.emp_no || index}`} value={emp._id}>
-                          {emp.emp_no} - {emp.employee_name}
-                        </option>
-                      ))}
+                    {employees && employees.length > 0 ? (
+                      employees
+                        .filter(emp => emp.emp_no) // Only require emp_no, not _id
+                        .map((emp, index) => {
+                          const identifier = emp._id || emp.emp_no;
+                          return (
+                            <option key={`perm-employee-${identifier}-${index}`} value={identifier}>
+                              {emp.emp_no} - {emp.employee_name || 'Unknown'}
+                            </option>
+                          );
+                        })
+                    ) : (
+                      <option value="" disabled>No employees available</option>
+                    )}
                   </select>
                 </div>
 
@@ -1049,10 +1233,39 @@ export default function OTAndPermissionsPage() {
                   <input
                     type="date"
                     value={permissionFormData.date}
-                    onChange={(e) => setPermissionFormData(prev => ({ ...prev, date: e.target.value }))}
+                    onChange={async (e) => {
+                      setPermissionFormData(prev => ({ ...prev, date: e.target.value }));
+                      // Check attendance when date changes
+                      if (permissionFormData.employeeNumber && e.target.value) {
+                        try {
+                          const attendanceRes = await api.getAttendanceDetail(permissionFormData.employeeNumber, e.target.value);
+                          if (!attendanceRes.success || !attendanceRes.data || !attendanceRes.data.inTime) {
+                            setPermissionValidationError('No attendance record found or employee has no in-time for this date. Permission cannot be created without attendance.');
+                          } else {
+                            setPermissionValidationError('');
+                          }
+                        } catch (error) {
+                          console.error('Error checking attendance:', error);
+                        }
+                      }
+                    }}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   />
                 </div>
+
+                {/* Attendance Validation Message for Permission */}
+                {permissionFormData.employeeNumber && permissionFormData.date && (
+                  <div className="rounded-lg border-2 border-orange-200 bg-orange-50 p-4 dark:border-orange-700 dark:bg-orange-900/20">
+                    <div className="flex items-center gap-2">
+                      <svg className="h-5 w-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                        Note: Permission requires attendance with in-time for the selected date. Please ensure the employee has marked attendance.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>

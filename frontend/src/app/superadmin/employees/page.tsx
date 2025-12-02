@@ -194,7 +194,7 @@ export default function EmployeesPage() {
           ? applicationFormData.designation_id 
           : applicationFormData.designation_id._id;
         if (!filtered.find(d => d._id === desigId)) {
-          setApplicationFormData(prev => ({ ...prev, designation_id: '' }));
+        setApplicationFormData(prev => ({ ...prev, designation_id: '' }));
         }
       }
     } else {

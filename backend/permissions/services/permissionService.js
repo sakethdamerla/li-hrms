@@ -48,7 +48,7 @@ const createPermissionRequest = async (data, userId) => {
       };
     }
 
-    // Validate Permission request - check conflicts
+    // Validate Permission request - check conflicts and attendance
     const validation = await validatePermissionRequest(employeeId, employeeNumber, date);
     if (!validation.isValid) {
       return {
@@ -57,27 +57,28 @@ const createPermissionRequest = async (data, userId) => {
         validationErrors: validation.errors,
         hasLeave: !!validation.leave,
         hasOD: !!validation.od,
+        hasAttendance: !!validation.attendance,
       };
     }
+
+    // Check attendance exists with inTime (required for permission)
+    const { checkAttendanceExists } = require('../../shared/services/conflictValidationService');
+    const attendanceCheck = await checkAttendanceExists(employeeNumber, date);
+    if (!attendanceCheck.hasAttendance) {
+      return {
+        success: false,
+        message: attendanceCheck.message || 'No attendance record found or employee has no in-time for this date. Permission cannot be created without attendance.',
+        validationErrors: [attendanceCheck.message || 'Attendance with in-time is required for permission'],
+        hasAttendance: false,
+      };
+    }
+
+    // Get attendance record (already validated)
+    const attendanceRecord = attendanceCheck.attendance;
 
     // Calculate permission hours
     const diffMs = endTime.getTime() - startTime.getTime();
     const permissionHours = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
-
-    // Get or create attendance record
-    let attendanceRecord = await AttendanceDaily.findOne({
-      employeeNumber: employeeNumber.toUpperCase(),
-      date: date,
-    });
-
-    if (!attendanceRecord) {
-      // Create basic attendance record
-      attendanceRecord = await AttendanceDaily.create({
-        employeeNumber: employeeNumber.toUpperCase(),
-        date: date,
-        status: 'PRESENT', // Assuming present if permission is taken
-      });
-    }
 
     // Create permission request
     const permissionRequest = await Permission.create({
