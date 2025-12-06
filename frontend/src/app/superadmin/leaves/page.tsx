@@ -733,19 +733,19 @@ export default function LeavesPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="max-w-[1920px] mx-auto">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-5">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Leave & OD Management</h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               Manage leave applications and on-duty requests
             </p>
           </div>
           <button
             onClick={() => openApplyDialog('leave')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-semibold shadow-sm hover:shadow-md transition-all"
           >
             <PlusIcon />
             Apply Leave / OD
@@ -1490,13 +1490,13 @@ export default function LeavesPage() {
               <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3">
                   <span className={`px-5 py-2.5 text-sm font-bold rounded-2xl capitalize shadow-sm ${getStatusColor(selectedItem.status)}`}>
-                    {selectedItem.status?.replace('_', ' ') || 'Unknown'}
-                  </span>
+                  {selectedItem.status?.replace('_', ' ') || 'Unknown'}
+                </span>
                   <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Created: {formatDate((selectedItem as any).createdAt || selectedItem.appliedAt)}</span>
+                  <span>Created: {formatDate((selectedItem as any).createdAt || selectedItem.appliedAt)}</span>
                   </div>
                 </div>
               </div>
@@ -1557,8 +1557,8 @@ export default function LeavesPage() {
                       )}
                     </div>
                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      {detailType === 'leave' ? 'Leave Type' : 'OD Type'}
-                    </p>
+                    {detailType === 'leave' ? 'Leave Type' : 'OD Type'}
+                  </p>
                   </div>
                   <p className="text-lg font-bold text-slate-900 dark:text-white capitalize ml-14">
                     {(detailType === 'leave' 
@@ -1825,7 +1825,7 @@ export default function LeavesPage() {
               )}
 
               {/* Action Section */}
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
+                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
                 {/* Revoke Button (if within 3 hours) */}
                 {canRevoke && (selectedItem.status === 'approved' || selectedItem.status === 'hod_approved' || selectedItem.status === 'hr_approved') && (
                   <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
@@ -1908,40 +1908,40 @@ export default function LeavesPage() {
                 {/* Approval Actions */}
                 {!['approved', 'rejected', 'cancelled'].includes(selectedItem.status) && (
                   <>
-                    <p className="text-xs text-slate-500 uppercase font-semibold">Take Action</p>
-                    
-                    {/* Comment */}
-                    <textarea
-                      value={actionComment}
-                      onChange={(e) => setActionComment(e.target.value)}
-                      placeholder="Add a comment (optional)..."
-                      rows={2}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                    />
-                    
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleDetailAction('approve')}
-                        className="px-4 py-2 text-sm font-semibold text-white bg-green-500 rounded-xl hover:bg-green-600 transition-colors flex items-center gap-2"
-                      >
-                        <CheckIcon /> Approve
-                      </button>
-                      <button
-                        onClick={() => handleDetailAction('reject')}
-                        className="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-colors flex items-center gap-2"
-                      >
-                        <XIcon /> Reject
-                      </button>
-                      <button
-                        onClick={() => handleDetailAction('forward')}
-                        className="px-4 py-2 text-sm font-semibold text-white bg-blue-500 rounded-xl hover:bg-blue-600 transition-colors"
-                      >
-                        Forward to HR
-                      </button>
-                    </div>
+                  <p className="text-xs text-slate-500 uppercase font-semibold">Take Action</p>
+                  
+                  {/* Comment */}
+                  <textarea
+                    value={actionComment}
+                    onChange={(e) => setActionComment(e.target.value)}
+                    placeholder="Add a comment (optional)..."
+                    rows={2}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                  
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleDetailAction('approve')}
+                      className="px-4 py-2 text-sm font-semibold text-white bg-green-500 rounded-xl hover:bg-green-600 transition-colors flex items-center gap-2"
+                    >
+                      <CheckIcon /> Approve
+                    </button>
+                    <button
+                      onClick={() => handleDetailAction('reject')}
+                      className="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-colors flex items-center gap-2"
+                    >
+                      <XIcon /> Reject
+                    </button>
+                    <button
+                      onClick={() => handleDetailAction('forward')}
+                      className="px-4 py-2 text-sm font-semibold text-white bg-blue-500 rounded-xl hover:bg-blue-600 transition-colors"
+                    >
+                      Forward to HR
+                    </button>
+                  </div>
                   </>
-                )}
+              )}
               </div>
 
               {/* Close Button */}

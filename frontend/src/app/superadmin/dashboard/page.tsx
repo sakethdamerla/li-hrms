@@ -288,26 +288,26 @@ export default function SuperAdminDashboard() {
     switch (type) {
       case 'leave':
         return (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         );
       case 'od':
         return (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         );
       case 'permission':
         return (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
       default:
         return (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
@@ -451,16 +451,16 @@ export default function SuperAdminDashboard() {
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#e2e8f01f_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f01f_1px,transparent_1px)] bg-[size:28px_28px] dark:bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)]" />
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-emerald-50/40 via-teal-50/35 to-transparent dark:from-slate-900/60 dark:via-slate-900/65 dark:to-slate-900/80" />
 
-      <div className="relative z-10 mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-[1920px]">
         {/* Header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Overview of your HRMS system</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Overview of your HRMS system</p>
           </div>
           
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>{currentDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
@@ -469,30 +469,30 @@ export default function SuperAdminDashboard() {
 
         {/* KPI Cards Grid */}
         {loading ? (
-          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900/80">
-                <div className="h-4 w-20 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
-                <div className="mt-3 h-8 w-16 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
-                <div className="mt-2 h-3 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
+              <div key={i} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <div className="h-3 w-16 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
+                <div className="mt-2 h-6 w-12 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
+                <div className="mt-1.5 h-2.5 w-20 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
             {KPICards.map((card, index) => (
               <div
                 key={index}
-                className={`group relative overflow-hidden rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-xl transition-all hover:shadow-2xl dark:border-slate-700 dark:bg-slate-900/80 ${card.bgColor}`}
+                className={`group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all hover:shadow-md hover:border-emerald-200 dark:border-slate-700 dark:bg-slate-800 ${card.bgColor}`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">{card.title}</p>
-                    <p className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{card.value}</p>
-                    <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 truncate" title={card.change}>{card.change}</p>
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">{card.title}</p>
+                    <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{card.value}</p>
+                    <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500 truncate" title={card.change}>{card.change}</p>
                   </div>
-                  <div className={`ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r ${card.color} p-2 text-white shadow-lg`}>
-                    {card.icon}
+                  <div className={`ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r ${card.color} p-1.5 text-white shadow-sm`}>
+                    <div className="h-4 w-4">{card.icon}</div>
                   </div>
                 </div>
               </div>
@@ -501,76 +501,76 @@ export default function SuperAdminDashboard() {
         )}
 
         {/* Analytics and Recent Activities Row */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Yesterday's Stats */}
           <div className="lg:col-span-2">
-            <h2 className="mb-4 text-lg font-bold text-slate-900 dark:text-white">Yesterday's Overview</h2>
+            <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">Yesterday's Overview</h2>
             {loading ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900/80">
-                    <div className="h-4 w-20 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
-                    <div className="mt-3 h-8 w-16 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
-                    <div className="mt-2 h-3 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
+                  <div key={i} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                    <div className="h-3 w-16 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
+                    <div className="mt-2 h-6 w-12 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
+                    <div className="mt-1.5 h-2.5 w-20 animate-pulse rounded bg-slate-200 dark:bg-slate-700"></div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-xl transition-all hover:shadow-2xl dark:border-slate-700 dark:bg-slate-900/80 bg-green-50 dark:bg-green-900/20">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all hover:shadow-md hover:border-emerald-200 dark:border-slate-700 dark:bg-slate-800 bg-green-50 dark:bg-green-900/20">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Yesterday Present</p>
-                      <p className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{stats?.yesterdayPresent || 0}</p>
-                      <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 truncate">Present employees</p>
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Yesterday Present</p>
+                      <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{stats?.yesterdayPresent || 0}</p>
+                      <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500 truncate">Present employees</p>
                     </div>
-                    <div className="ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 p-2 text-white shadow-lg">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 p-1.5 text-white shadow-sm">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                       </svg>
                     </div>
                   </div>
                 </div>
 
-                <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-xl transition-all hover:shadow-2xl dark:border-slate-700 dark:bg-slate-900/80 bg-red-50 dark:bg-red-900/20">
+                <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-slate-700 dark:bg-slate-800 bg-red-50 dark:bg-red-900/20">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Yesterday Absent</p>
-                      <p className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{stats?.yesterdayAbsent || 0}</p>
-                      <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 truncate">Absent employees</p>
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Yesterday Absent</p>
+                      <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{stats?.yesterdayAbsent || 0}</p>
+                      <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500 truncate">Absent employees</p>
                     </div>
-                    <div className="ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r from-red-500 to-rose-500 p-2 text-white shadow-lg">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r from-red-500 to-rose-500 p-1.5 text-white shadow-sm">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </div>
                   </div>
                 </div>
 
-                <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-xl transition-all hover:shadow-2xl dark:border-slate-700 dark:bg-slate-900/80 bg-orange-50 dark:bg-orange-900/20">
+                <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-slate-700 dark:bg-slate-800 bg-orange-50 dark:bg-orange-900/20">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Yesterday Leaves</p>
-                      <p className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{stats?.yesterdayOnLeave || 0}</p>
-                      <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 truncate">On approved leave</p>
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Yesterday Leaves</p>
+                      <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{stats?.yesterdayOnLeave || 0}</p>
+                      <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500 truncate">On approved leave</p>
                     </div>
-                    <div className="ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 p-2 text-white shadow-lg">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 p-1.5 text-white shadow-sm">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
                   </div>
                 </div>
 
-                <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-xl transition-all hover:shadow-2xl dark:border-slate-700 dark:bg-slate-900/80 bg-blue-50 dark:bg-blue-900/20">
+                <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-slate-700 dark:bg-slate-800 bg-blue-50 dark:bg-blue-900/20">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate">Yesterday ODs</p>
-                      <p className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{stats?.yesterdayODs || 0}</p>
-                      <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 truncate">On approved OD</p>
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">Yesterday ODs</p>
+                      <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{stats?.yesterdayODs || 0}</p>
+                      <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500 truncate">On approved OD</p>
                     </div>
-                    <div className="ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 p-2 text-white shadow-lg">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="ml-2 flex-shrink-0 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 p-1.5 text-white shadow-sm">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
@@ -582,8 +582,8 @@ export default function SuperAdminDashboard() {
           </div>
 
           {/* Recent Activities */}
-          <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900/80">
-            <h2 className="mb-4 text-lg font-bold text-slate-900 dark:text-white">Recent Activities</h2>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">Recent Activities</h2>
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
@@ -591,35 +591,35 @@ export default function SuperAdminDashboard() {
                 ))}
               </div>
             ) : recentActivities.length === 0 ? (
-              <div className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
                 No recent activities
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {recentActivities.map((activity) => (
                   <div
                     key={activity._id}
-                    className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
+                    className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-2.5 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
                   >
-                    <div className={`rounded-lg p-2 ${
+                    <div className={`rounded-lg p-1.5 ${
                       activity.type === 'leave' ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' :
                       activity.type === 'od' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' :
                       'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
                     }`}>
-                      {getActivityIcon(activity.type)}
+                      <div className="h-3.5 w-3.5">{getActivityIcon(activity.type)}</div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                      <p className="truncate text-xs font-medium text-slate-900 dark:text-white">
                         {activity.title}
                       </p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                      <p className="mt-0.5 truncate text-[10px] text-slate-400 dark:text-slate-500">
                         {activity.description}
                       </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(activity.status)}`}>
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${getStatusColor(activity.status)}`}>
                           {activity.status || 'new'}
                         </span>
-                        <span className="text-xs text-slate-400 dark:text-slate-500">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
                           {formatTimeAgo(activity.timestamp)}
                         </span>
                       </div>
@@ -632,29 +632,29 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Quick Stats Row */}
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-lg dark:border-slate-700 dark:bg-slate-900/80">
+        <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Pending Leaves</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{stats?.pendingLeaves || 0}</p>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Pending Leaves</p>
+                <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{stats?.pendingLeaves || 0}</p>
               </div>
-              <div className="rounded-lg bg-orange-100 p-2 dark:bg-orange-900/20">
-                <svg className="h-5 w-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="rounded-lg bg-orange-100 p-1.5 dark:bg-orange-900/20">
+                <svg className="h-4 w-4 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-lg dark:border-slate-700 dark:bg-slate-900/80">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Pending ODs</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{stats?.pendingODs || 0}</p>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Pending ODs</p>
+                <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{stats?.pendingODs || 0}</p>
               </div>
-              <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/20">
-                <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="rounded-lg bg-blue-100 p-1.5 dark:bg-blue-900/20">
+                <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
@@ -662,28 +662,28 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-lg dark:border-slate-700 dark:bg-slate-900/80">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Pending Permissions</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{stats?.pendingPermissions || 0}</p>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Pending Permissions</p>
+                <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{stats?.pendingPermissions || 0}</p>
               </div>
-              <div className="rounded-lg bg-purple-100 p-2 dark:bg-purple-900/20">
-                <svg className="h-5 w-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="rounded-lg bg-purple-100 p-1.5 dark:bg-purple-900/20">
+                <svg className="h-4 w-4 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm p-4 shadow-lg dark:border-slate-700 dark:bg-slate-900/80">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Monthly Leaves</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{stats?.monthlyLeaves || 0}</p>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Monthly Leaves</p>
+                <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{stats?.monthlyLeaves || 0}</p>
               </div>
-              <div className="rounded-lg bg-teal-100 p-2 dark:bg-teal-900/20">
-                <svg className="h-5 w-5 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="rounded-lg bg-teal-100 p-1.5 dark:bg-teal-900/20">
+                <svg className="h-4 w-4 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>

@@ -519,14 +519,14 @@ export default function AttendancePage() {
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#e2e8f01f_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f01f_1px,transparent_1px)] bg-[size:28px_28px] dark:bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)]" />
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-emerald-50/40 via-teal-50/35 to-transparent dark:from-slate-900/60 dark:via-slate-900/65 dark:to-slate-900/80" />
 
-      <div className="relative z-10 mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-[1920px]">
         {/* Header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Attendance Management</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">View and manage employee attendance records</p>
-          </div>
-          
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Attendance Management</h1>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">View and manage employee attendance records</p>
+        </div>
+
           <div className="flex flex-wrap items-center gap-3">
             {/* Department Filter */}
             <select
@@ -535,7 +535,7 @@ export default function AttendancePage() {
                 setSelectedDepartment(e.target.value);
                 setSelectedDesignation('');
               }}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="">All Departments</option>
               {departments.map((dept) => (
@@ -544,13 +544,13 @@ export default function AttendancePage() {
                 </option>
               ))}
             </select>
-
+          
             {/* Designation Filter */}
-            {selectedDepartment && (
+          {selectedDepartment && (
               <select
                 value={selectedDesignation}
                 onChange={(e) => setSelectedDesignation(e.target.value)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               >
                 <option value="">All Designations</option>
                 {designations.map((desig) => (
@@ -559,19 +559,19 @@ export default function AttendancePage() {
                   </option>
                 ))}
               </select>
-            )}
+          )}
 
-            {/* View Toggle */}
-            <div className="flex rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
+          {/* View Toggle */}
+            <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 dark:border-slate-700 dark:bg-slate-800">
               <button
                 onClick={() => setViewMode('list')}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                   viewMode === 'list'
-                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30'
-                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700'
                 }`}
               >
-                <svg className="mr-2 inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="mr-1.5 inline h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
                 </svg>
                 List View
@@ -583,13 +583,13 @@ export default function AttendancePage() {
                     setSelectedEmployee(monthlyData[0].employee);
                   }
                 }}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                   viewMode === 'calendar'
-                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30'
-                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700'
                 }`}
               >
-                <svg className="mr-2 inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="mr-1.5 inline h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 Calendar View
@@ -597,12 +597,12 @@ export default function AttendancePage() {
             </div>
 
             {/* Month Selection */}
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800">
               <button
                 onClick={() => navigateMonth('prev')}
-                className="rounded-lg p-1 text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                className="rounded-md p-1 text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -613,7 +613,7 @@ export default function AttendancePage() {
                   newDate.setMonth(parseInt(e.target.value) - 1);
                   setCurrentDate(newDate);
                 }}
-                className="rounded-lg border-0 bg-transparent px-2 py-1 text-sm font-medium text-slate-900 focus:outline-none focus:ring-0 dark:text-white"
+                className="rounded-md border-0 bg-transparent px-1.5 py-0.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-0 dark:text-white"
               >
                 {monthNames.map((name, idx) => (
                   <option key={idx} value={idx + 1}>{name}</option>
@@ -626,7 +626,7 @@ export default function AttendancePage() {
                   newDate.setFullYear(parseInt(e.target.value));
                   setCurrentDate(newDate);
                 }}
-                className="rounded-lg border-0 bg-transparent px-2 py-1 text-sm font-medium text-slate-900 focus:outline-none focus:ring-0 dark:text-white"
+                className="rounded-md border-0 bg-transparent px-1.5 py-0.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-0 dark:text-white"
               >
                 {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
                   <option key={y} value={y}>{y}</option>
@@ -634,9 +634,9 @@ export default function AttendancePage() {
               </select>
               <button
                 onClick={() => navigateMonth('next')}
-                className="rounded-lg p-1 text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                className="rounded-md p-1 text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -692,24 +692,24 @@ export default function AttendancePage() {
         {/* List View */}
         {viewMode === 'list' && (
           <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm shadow-xl dark:border-slate-700 dark:bg-slate-900/80">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                    <th className="sticky left-0 z-10 w-[180px] border-r border-slate-200 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                      Employee
-                    </th>
-                    {daysArray.map((day) => (
-                      <th
-                        key={day}
-                        className="w-[calc((100%-180px-80px)/31)] border-r border-slate-200 px-1 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300"
-                      >
-                        {day}
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                      <th className="sticky left-0 z-10 w-[180px] border-r border-slate-200 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        Employee
                       </th>
-                    ))}
-                    <th className="w-[80px] border-r border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-blue-50 dark:bg-blue-900/20">
-                      Days Present
-                    </th>
+                      {daysArray.map((day) => (
+                        <th
+                          key={day}
+                          className="w-[calc((100%-180px-80px)/31)] border-r border-slate-200 px-1 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300"
+                        >
+                          {day}
+                        </th>
+                      ))}
+                      <th className="w-[80px] border-r border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-blue-50 dark:bg-blue-900/20">
+                        Days Present
+                      </th>
                     <th className="w-[80px] border-r border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-orange-50 dark:bg-orange-900/20">
                       OT Hours
                     </th>
@@ -719,12 +719,12 @@ export default function AttendancePage() {
                     <th className="w-[80px] border-r border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-cyan-50 dark:bg-cyan-900/20">
                       Permissions
                     </th>
-                    <th className="w-[80px] border-r-0 border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-green-50 dark:bg-green-900/20">
-                      Payable Shifts
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                      <th className="w-[80px] border-r-0 border-slate-200 px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:text-slate-300 bg-green-50 dark:bg-green-900/20">
+                        Payable Shifts
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {loading ? (
                     <>
                       {/* Skeleton Loading - only tbody cells */}
@@ -762,14 +762,14 @@ export default function AttendancePage() {
                     </>
                   ) : (
                     <>
-                      {filteredMonthlyData.length === 0 ? (
-                        <tr>
+                    {filteredMonthlyData.length === 0 ? (
+                      <tr>
                           <td colSpan={daysArray.length + 5} className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                            No employees found matching the selected filters.
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredMonthlyData.map((item) => {
+                          No employees found matching the selected filters.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredMonthlyData.map((item) => {
                         // Use presentDays from API if available, otherwise calculate
                         const daysPresent = item.presentDays !== undefined 
                           ? item.presentDays 
@@ -857,10 +857,10 @@ export default function AttendancePage() {
                       })
                       )}
                     </>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    )}
+                  </tbody>
+                </table>
+              </div>
           </div>
         )}
 

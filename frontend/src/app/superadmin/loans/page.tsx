@@ -716,19 +716,19 @@ export default function LoansPage() {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="max-w-[1920px] mx-auto">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-5">
         <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Loan & Salary Advance Management</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
             Manage loan and salary advance applications
           </p>
         </div>
           <button
             onClick={() => openApplyDialog('loan')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-semibold shadow-sm hover:shadow-md transition-all"
           >
             <PlusIcon />
             Apply Loan / Salary Advance
@@ -737,15 +737,15 @@ export default function LoansPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
+        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center dark:bg-blue-900/20">
               <LoanIcon />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900 dark:text-white">{loans.length}</div>
-              <div className="text-sm text-slate-500">Total Loans</div>
+              <div className="text-xl font-bold text-slate-900 dark:text-white">{loans.length}</div>
+              <div className="text-[11px] text-slate-500">Total Loans</div>
             </div>
           </div>
         </div>
@@ -1165,7 +1165,7 @@ export default function LoansPage() {
       {/* Detail Dialog */}
       {showDetailDialog && selectedLoan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => {
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => {
             setShowDetailDialog(false);
             setSelectedLoan(null);
             setTransactions([]);

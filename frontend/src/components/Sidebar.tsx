@@ -106,7 +106,30 @@ const OTPermissionIcon = ({ className, ...props }: IconProps) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const LeaveIcon = ({ className, ...props }: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
     <path d="M9 12l2 2 4-4" />
+    <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3" />
+    <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3" />
+    <path d="M12 3c0 1-1 3-3 3s-3-2-3-3 1-3 3-3 3 2 3 3" />
+    <path d="M12 21c0-1 1-3 3-3s3 2 3 3-1 3-3 3-3-2-3-3" />
+  </svg>
+);
+
+const LoanIcon = ({ className, ...props }: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+  </svg>
+);
+
+const ConfusedShiftIcon = ({ className, ...props }: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 6v6l4 2" />
+    <path d="M9 12h6" />
   </svg>
 );
 
@@ -136,9 +159,9 @@ const navItems: NavItem[] = [
   { href: '/superadmin/employees', label: 'Employees', icon: EmployeesIcon },
   { href: '/superadmin/attendance', label: 'Attendance', icon: AttendanceIcon },
   { href: '/superadmin/ot-permissions', label: 'OT & Permissions', icon: OTPermissionIcon },
-  { href: '/superadmin/confused-shifts', label: 'Confused Shifts', icon: CalendarIcon },
-  { href: '/superadmin/leaves', label: 'Leave & OD', icon: CalendarIcon },
-  { href: '/superadmin/loans', label: 'Loan & Salary Advance', icon: CalendarIcon },
+  { href: '/superadmin/confused-shifts', label: 'Confused Shifts', icon: ConfusedShiftIcon },
+  { href: '/superadmin/leaves', label: 'Leave & OD', icon: LeaveIcon },
+  { href: '/superadmin/loans', label: 'Loan & Salary Advance', icon: LoanIcon },
   { href: '/superadmin/shifts', label: 'Shifts', icon: ClockIcon },
   { href: '/superadmin/departments', label: 'Departments', icon: BuildingIcon },
   { href: '/superadmin/workspaces', label: 'Workspaces', icon: WorkspacesIcon },
@@ -177,40 +200,45 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed top-0 left-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-40 ${
-        isCollapsed ? 'w-[70px]' : 'w-64'
+      className={`fixed top-0 left-0 h-screen bg-white border-r border-slate-200/60 transition-all duration-300 ease-in-out z-40 ${
+        isCollapsed ? 'w-[72px]' : 'w-[260px]'
       }`}
     >
       {/* Collapse/Expand Button */}
       <button
         onClick={toggleSidebar}
-        className="absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors z-50"
+        className="absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-all z-50"
         aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {isCollapsed ? (
-          <ExpandIcon className="h-3 w-3 text-black" />
+          <ExpandIcon className="h-3 w-3 text-slate-600" />
         ) : (
-          <CollapseIcon className="h-3 w-3 text-black" />
+          <CollapseIcon className="h-3 w-3 text-slate-600" />
         )}
       </button>
 
       {/* Sidebar Content */}
       <div className="flex flex-col h-full">
         {/* Logo/Header */}
-        <div className={`p-4 border-b border-gray-200 ${isCollapsed ? 'flex justify-center' : ''}`}>
+        <div className={`px-4 py-4 border-b border-slate-200/60 ${isCollapsed ? 'flex justify-center' : ''}`}>
           {!isCollapsed && (
-            <h2 className="text-lg font-semibold text-black">HRMS</h2>
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-sm">
+                <span className="text-sm font-bold text-white">H</span>
+              </div>
+              <h2 className="text-base font-semibold text-slate-900">HRMS</h2>
+            </div>
           )}
           {isCollapsed && (
-            <div className="h-8 w-8 rounded bg-gray-100 flex items-center justify-center">
-              <span className="text-xs font-bold text-black">H</span>
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-sm">
+              <span className="text-sm font-bold text-white">H</span>
             </div>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
-          <ul className="space-y-1 px-2">
+        <nav className="flex-1 overflow-y-auto py-3 px-2">
+          <ul className="space-y-0.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -219,16 +247,16 @@ export default function Sidebar() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
                       isActive
-                        ? 'bg-gray-100 text-black'
-                        : 'text-gray-700 hover:bg-gray-50'
+                        ? 'bg-emerald-50 text-emerald-700 shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                     } ${isCollapsed ? 'justify-center' : ''}`}
                     title={isCollapsed ? item.label : undefined}
                   >
-                    <Icon className="h-5 w-5 text-black flex-shrink-0" />
+                    <Icon className={`h-[18px] w-[18px] flex-shrink-0 ${isActive ? 'text-emerald-600' : 'text-slate-500'}`} />
                     {!isCollapsed && (
-                      <span className="text-sm font-medium">{item.label}</span>
+                      <span className={`text-sm font-medium ${isActive ? 'text-emerald-700' : 'text-slate-700'}`}>{item.label}</span>
                     )}
                   </Link>
                 </li>
@@ -238,29 +266,29 @@ export default function Sidebar() {
         </nav>
 
         {/* User Section & Logout */}
-        <div className="border-t border-gray-200 p-3 space-y-2">
+        <div className="border-t border-slate-200/60 p-3 space-y-1.5">
           {/* Profile Link */}
           <Link
             href="/superadmin/profile"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
               pathname === '/superadmin/profile'
-                ? 'bg-blue-50 text-blue-700'
-                : 'text-gray-700 hover:bg-gray-50'
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             } ${isCollapsed ? 'justify-center' : ''}`}
             title={isCollapsed ? 'Profile' : undefined}
           >
             {!isCollapsed && user ? (
               <>
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 shadow-sm">
                   {user.name?.[0]?.toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{getRoleLabel(user.role)}</p>
+                  <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
+                  <p className="text-xs text-slate-500 truncate">{getRoleLabel(user.role)}</p>
                 </div>
               </>
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white font-semibold text-xs shadow-sm">
                 {user?.name?.[0]?.toUpperCase() || 'U'}
               </div>
             )}
@@ -269,12 +297,12 @@ export default function Sidebar() {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-red-600 hover:bg-red-50 ${
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-slate-600 hover:bg-red-50 hover:text-red-600 ${
               isCollapsed ? 'justify-center' : ''
             }`}
             title={isCollapsed ? 'Logout' : undefined}
           >
-            <LogoutIcon className="h-5 w-5 flex-shrink-0" />
+            <LogoutIcon className="h-[18px] w-[18px] flex-shrink-0" />
             {!isCollapsed && (
               <span className="text-sm font-medium">Logout</span>
             )}
