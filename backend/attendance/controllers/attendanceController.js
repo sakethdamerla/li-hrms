@@ -13,6 +13,14 @@ const MonthlyAttendanceSummary = require('../model/MonthlyAttendanceSummary');
 const { calculateMonthlySummary } = require('../services/summaryCalculationService');
 
 /**
+ * Format date to YYYY-MM-DD
+ */
+const formatDate = (date) => {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/**
  * @desc    Get attendance records for calendar view
  * @route   GET /api/attendance/calendar
  * @access  Private
@@ -836,17 +844,31 @@ exports.updateOutTime = async (req, res) => {
       });
     }
 
-    // Handle next-day scenario: If out-time (time only) is before in-time (time only) on same date
-    // Treat out-time as next day (for overnight shifts)
+    // Handle next-day scenario for overnight shifts
+    // Check if the shift is overnight and adjust out-time accordingly
     const outTimeOnly = outTimeDate.getHours() * 60 + outTimeDate.getMinutes();
     const inTimeOnly = attendanceRecord.inTime.getHours() * 60 + attendanceRecord.inTime.getMinutes();
     const outTimeDateStr = outTimeDate.toDateString();
     const inTimeDateStr = attendanceRecord.inTime.toDateString();
     
-    // If out-time is earlier than in-time and on same date, it's next day
-    if (outTimeOnly < inTimeOnly && outTimeDateStr === inTimeDateStr) {
-      outTimeDate = new Date(outTimeDate);
-      outTimeDate.setDate(outTimeDate.getDate() + 1);
+    // Get shift to check if it's overnight
+    let isOvernightShift = false;
+    if (attendanceRecord.shiftId && typeof attendanceRecord.shiftId === 'object') {
+      const [shiftStartHour] = attendanceRecord.shiftId.startTime.split(':').map(Number);
+      const [shiftEndHour] = attendanceRecord.shiftId.endTime.split(':').map(Number);
+      isOvernightShift = shiftStartHour >= 20 || (shiftEndHour < shiftStartHour);
+    }
+    
+    // If shift is overnight or out-time is earlier than in-time and on same date, it's next day
+    if (isOvernightShift || (outTimeOnly < inTimeOnly && outTimeDateStr === inTimeDateStr)) {
+      // For overnight shifts, out-time on the next day is expected
+      // Ensure out-time date is set correctly
+      if (!isOvernightShift && outTimeDateStr === inTimeDateStr) {
+        // Same date but out-time earlier - must be next day
+        outTimeDate = new Date(outTimeDate);
+        outTimeDate.setDate(outTimeDate.getDate() + 1);
+      }
+      // For overnight shifts, the out-time date might already be correct, just ensure it's preserved
     }
 
     // Update outTime
@@ -888,22 +910,61 @@ exports.updateOutTime = async (req, res) => {
       await confusedShift.save();
     }
 
+    // If out-time is on next day (for overnight shifts), ensure it's stored with correct date
+    // The attendance record date should remain as the shift date (in-time date)
+    // But out-time can be on the next day
+    
     await attendanceRecord.save();
+
+    // If this is an overnight shift and out-time is on next day, ensure next day doesn't have duplicate
+    if (attendanceRecord.shiftId && typeof attendanceRecord.shiftId === 'object') {
+      const shift = attendanceRecord.shiftId;
+      const [shiftStartHour] = shift.startTime.split(':').map(Number);
+      const isOvernight = shiftStartHour >= 20;
+      
+      if (isOvernight && attendanceRecord.outTime) {
+        const outDateStr = formatDate(attendanceRecord.outTime);
+        if (outDateStr !== date) {
+          // Out-time is on next day - check and clean up duplicate record if exists
+          const nextDayRecord = await AttendanceDaily.findOne({
+            employeeNumber: employeeNumber.toUpperCase(),
+            date: outDateStr,
+          });
+          
+          // If next day has only out-time (no in-time), it's likely a duplicate - remove it
+          if (nextDayRecord && !nextDayRecord.inTime && nextDayRecord.outTime) {
+            // Check if it's the same out-time
+            const nextDayOutTimeStr = formatDate(nextDayRecord.outTime);
+            const currentOutTimeStr = formatDate(attendanceRecord.outTime);
+            if (nextDayOutTimeStr === currentOutTimeStr) {
+              await AttendanceDaily.deleteOne({ _id: nextDayRecord._id });
+            }
+          }
+        }
+      }
+    }
 
     // Detect extra hours
     const { detectExtraHours } = require('../services/extraHoursService');
     await detectExtraHours(employeeNumber.toUpperCase(), date);
 
-    // Recalculate monthly summary
+    // Recalculate monthly summary for both current and next day (if overnight)
     const { recalculateOnAttendanceUpdate } = require('../services/summaryCalculationService');
     await recalculateOnAttendanceUpdate(employeeNumber.toUpperCase(), date);
+    
+    // If out-time is on next day, also recalculate next day's summary
+    if (attendanceRecord.outTime) {
+      const outDateStr = formatDate(attendanceRecord.outTime);
+      if (outDateStr !== date) {
+        await recalculateOnAttendanceUpdate(employeeNumber.toUpperCase(), outDateStr);
+      }
+    }
 
     const updatedRecord = await AttendanceDaily.findOne({
       employeeNumber: employeeNumber.toUpperCase(),
       date: date,
     })
-      .populate('shiftId', 'name startTime endTime duration payableShifts')
-      .populate('employeeId', 'emp_no employee_name department designation');
+      .populate('shiftId', 'name startTime endTime duration payableShifts');
 
     res.status(200).json({
       success: true,
@@ -985,7 +1046,8 @@ exports.assignShift = async (req, res) => {
 
     // Calculate late-in and early-out with the assigned shift
     const { calculateLateIn, calculateEarlyOut } = require('../../shifts/services/shiftDetectionService');
-    const lateInMinutes = calculateLateIn(attendanceRecord.inTime, shift.startTime, shift.gracePeriod || 15);
+    // Pass the date parameter for proper overnight shift handling
+    const lateInMinutes = calculateLateIn(attendanceRecord.inTime, shift.startTime, shift.gracePeriod || 15, date);
     const earlyOutMinutes = attendanceRecord.outTime 
       ? calculateEarlyOut(attendanceRecord.outTime, shift.endTime, shift.startTime, date) 
       : null;
@@ -1014,8 +1076,7 @@ exports.assignShift = async (req, res) => {
       employeeNumber: employeeNumber.toUpperCase(),
       date: date,
     })
-      .populate('shiftId', 'name startTime endTime duration payableShifts')
-      .populate('employeeId', 'emp_no employee_name department designation');
+      .populate('shiftId', 'name startTime endTime duration payableShifts');
 
     res.status(200).json({
       success: true,

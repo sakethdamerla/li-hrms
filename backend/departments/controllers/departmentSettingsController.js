@@ -82,12 +82,23 @@ async function getResolvedPermissionSettings(departmentId) {
     // Get department model for permission policy
     const department = await Department.findById(departmentId);
     
-    // Merge: Department settings override department model defaults
+    // Get global permission deduction settings
+    const PermissionDeductionSettings = require('../../permissions/model/PermissionDeductionSettings');
+    const globalSettings = await PermissionDeductionSettings.getActiveSettings();
+    
+    // Merge: Department settings override department model defaults and global settings
     const resolved = {
       perDayLimit: deptSettings?.permissions?.perDayLimit ?? department?.permissionPolicy?.dailyLimit ?? 0,
       monthlyLimit: deptSettings?.permissions?.monthlyLimit ?? department?.permissionPolicy?.monthlyLimit ?? 0,
       deductFromSalary: deptSettings?.permissions?.deductFromSalary ?? department?.permissionPolicy?.deductFromSalary ?? false,
       deductionAmount: deptSettings?.permissions?.deductionAmount ?? department?.permissionPolicy?.deductionAmount ?? 0,
+      deductionRules: {
+        countThreshold: deptSettings?.permissions?.deductionRules?.countThreshold ?? globalSettings?.deductionRules?.countThreshold ?? null,
+        deductionType: deptSettings?.permissions?.deductionRules?.deductionType ?? globalSettings?.deductionRules?.deductionType ?? null,
+        deductionAmount: deptSettings?.permissions?.deductionRules?.deductionAmount ?? globalSettings?.deductionRules?.deductionAmount ?? null,
+        minimumDuration: deptSettings?.permissions?.deductionRules?.minimumDuration ?? globalSettings?.deductionRules?.minimumDuration ?? null,
+        calculationMode: deptSettings?.permissions?.deductionRules?.calculationMode ?? globalSettings?.deductionRules?.calculationMode ?? null,
+      },
     };
     
     return resolved;
@@ -120,6 +131,37 @@ async function getResolvedOTSettings(departmentId) {
     return resolved;
   } catch (error) {
     console.error('Error getting resolved OT settings:', error);
+    return null;
+  }
+}
+
+/**
+ * Helper function to get resolved attendance deduction settings
+ * Returns department settings if available, otherwise global settings
+ */
+async function getResolvedAttendanceSettings(departmentId) {
+  try {
+    // Get department settings
+    const deptSettings = await DepartmentSettings.findOne({ department: departmentId });
+    
+    // Get global attendance deduction settings
+    const AttendanceDeductionSettings = require('../../attendance/model/AttendanceDeductionSettings');
+    const globalSettings = await AttendanceDeductionSettings.getActiveSettings();
+    
+    // Merge: Department settings override global
+    const resolved = {
+      deductionRules: {
+        combinedCountThreshold: deptSettings?.attendance?.deductionRules?.combinedCountThreshold ?? globalSettings?.deductionRules?.combinedCountThreshold ?? null,
+        deductionType: deptSettings?.attendance?.deductionRules?.deductionType ?? globalSettings?.deductionRules?.deductionType ?? null,
+        deductionAmount: deptSettings?.attendance?.deductionRules?.deductionAmount ?? globalSettings?.deductionRules?.deductionAmount ?? null,
+        minimumDuration: deptSettings?.attendance?.deductionRules?.minimumDuration ?? globalSettings?.deductionRules?.minimumDuration ?? null,
+        calculationMode: deptSettings?.attendance?.deductionRules?.calculationMode ?? globalSettings?.deductionRules?.calculationMode ?? null,
+      },
+    };
+    
+    return resolved;
+  } catch (error) {
+    console.error('Error getting resolved attendance settings:', error);
     return null;
   }
 }
@@ -180,7 +222,7 @@ exports.getDepartmentSettings = async (req, res) => {
 exports.updateDepartmentSettings = async (req, res) => {
   try {
     const { deptId } = req.params;
-    const { leaves, loans, salaryAdvance, permissions, ot } = req.body;
+    const { leaves, loans, salaryAdvance, permissions, ot, attendance } = req.body;
 
     // Verify department exists
     const department = await Department.findById(deptId);
@@ -229,11 +271,30 @@ exports.updateDepartmentSettings = async (req, res) => {
     }
 
     if (permissions) {
-      Object.keys(permissions).forEach(key => {
-        if (permissions[key] !== undefined) {
-          settings.permissions[key] = permissions[key];
+      // Update basic permission settings
+      if (permissions.perDayLimit !== undefined) settings.permissions.perDayLimit = permissions.perDayLimit;
+      if (permissions.monthlyLimit !== undefined) settings.permissions.monthlyLimit = permissions.monthlyLimit;
+      if (permissions.deductFromSalary !== undefined) settings.permissions.deductFromSalary = permissions.deductFromSalary;
+      if (permissions.deductionAmount !== undefined) settings.permissions.deductionAmount = permissions.deductionAmount;
+      
+      // Update permission deduction rules
+      if (permissions.deductionRules) {
+        if (permissions.deductionRules.countThreshold !== undefined) {
+          settings.permissions.deductionRules.countThreshold = permissions.deductionRules.countThreshold;
         }
-      });
+        if (permissions.deductionRules.deductionType !== undefined) {
+          settings.permissions.deductionRules.deductionType = permissions.deductionRules.deductionType;
+        }
+        if (permissions.deductionRules.deductionAmount !== undefined) {
+          settings.permissions.deductionRules.deductionAmount = permissions.deductionRules.deductionAmount;
+        }
+        if (permissions.deductionRules.minimumDuration !== undefined) {
+          settings.permissions.deductionRules.minimumDuration = permissions.deductionRules.minimumDuration;
+        }
+        if (permissions.deductionRules.calculationMode !== undefined) {
+          settings.permissions.deductionRules.calculationMode = permissions.deductionRules.calculationMode;
+        }
+      }
       settings.markModified('permissions');
     }
 
@@ -244,6 +305,28 @@ exports.updateDepartmentSettings = async (req, res) => {
         }
       });
       settings.markModified('ot');
+    }
+
+    if (attendance) {
+      // Update attendance deduction rules
+      if (attendance.deductionRules) {
+        if (attendance.deductionRules.combinedCountThreshold !== undefined) {
+          settings.attendance.deductionRules.combinedCountThreshold = attendance.deductionRules.combinedCountThreshold;
+        }
+        if (attendance.deductionRules.deductionType !== undefined) {
+          settings.attendance.deductionRules.deductionType = attendance.deductionRules.deductionType;
+        }
+        if (attendance.deductionRules.deductionAmount !== undefined) {
+          settings.attendance.deductionRules.deductionAmount = attendance.deductionRules.deductionAmount;
+        }
+        if (attendance.deductionRules.minimumDuration !== undefined) {
+          settings.attendance.deductionRules.minimumDuration = attendance.deductionRules.minimumDuration;
+        }
+        if (attendance.deductionRules.calculationMode !== undefined) {
+          settings.attendance.deductionRules.calculationMode = attendance.deductionRules.calculationMode;
+        }
+      }
+      settings.markModified('attendance');
     }
 
     settings.updatedBy = req.user._id;
@@ -327,4 +410,5 @@ exports.getResolvedLeaveSettings = getResolvedLeaveSettings;
 exports.getResolvedLoanSettings = getResolvedLoanSettings;
 exports.getResolvedPermissionSettings = getResolvedPermissionSettings;
 exports.getResolvedOTSettings = getResolvedOTSettings;
+exports.getResolvedAttendanceSettings = getResolvedAttendanceSettings;
 

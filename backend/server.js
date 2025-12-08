@@ -95,6 +95,10 @@ app.use('/api/permissions', permissionRoutes);
 const allowanceDeductionRoutes = require('./allowances-deductions/index.js');
 app.use('/api/allowances-deductions', allowanceDeductionRoutes);
 
+// Payroll routes
+const payrollRoutes = require('./payroll/index.js');
+app.use('/api/payroll', payrollRoutes);
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({

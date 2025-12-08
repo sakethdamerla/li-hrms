@@ -10,6 +10,7 @@ const { protect, authorize } = require('../authentication/middleware/authMiddlew
 // Controllers
 const attendanceController = require('./controllers/attendanceController');
 const attendanceSettingsController = require('./controllers/attendanceSettingsController');
+const attendanceDeductionSettingsController = require('./controllers/attendanceDeductionSettingsController');
 const attendanceSyncController = require('./controllers/attendanceSyncController');
 const attendanceUploadController = require('./controllers/attendanceUploadController');
 const monthlySummaryController = require('./controllers/monthlySummaryController');
@@ -51,6 +52,14 @@ router.put('/:employeeNumber/:date/shift', authorize('super_admin', 'sub_admin',
 // Settings Routes (Super Admin, Sub Admin only)
 router.get('/settings', attendanceSettingsController.getSettings);
 router.put('/settings', authorize('super_admin', 'sub_admin'), attendanceSettingsController.updateSettings);
+
+// Deduction Settings Routes (Must come before dynamic routes)
+// Get attendance deduction settings
+router.get('/settings/deduction', attendanceDeductionSettingsController.getSettings);
+
+// Save attendance deduction settings
+router.post('/settings/deduction', authorize('super_admin', 'sub_admin'), attendanceDeductionSettingsController.saveSettings);
+router.put('/settings/deduction', authorize('super_admin', 'sub_admin'), attendanceDeductionSettingsController.saveSettings);
 
 // Sync Routes (Super Admin, Sub Admin only)
 router.post('/sync', authorize('super_admin', 'sub_admin'), attendanceSyncController.manualSync);

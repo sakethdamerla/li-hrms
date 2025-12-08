@@ -7,6 +7,7 @@ const AttendanceRawLog = require('../model/AttendanceRawLog');
 const AttendanceDaily = require('../model/AttendanceDaily');
 const { processAndAggregateLogs } = require('../services/attendanceSyncService');
 const { detectAndAssignShift } = require('../../shifts/services/shiftDetectionService');
+const { batchDetectExtraHours } = require('../services/extraHoursService');
 const XLSX = require('xlsx');
 
 /**
@@ -116,6 +117,35 @@ exports.uploadExcel = async (req, res) => {
     // Process and aggregate
     const stats = await processAndAggregateLogs(rawLogs, false);
 
+    // IMPORTANT: After processing logs, detect extra hours for all affected records
+    // This ensures extra hours are calculated for all attendance records from Excel upload
+    try {
+      console.log('[ExcelUpload] Detecting extra hours for all processed records...');
+      
+      // Get unique dates from the processed logs
+      const processedDates = [...new Set(rawLogs.map(log => {
+        const d = new Date(log.timestamp);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }))];
+      
+      if (processedDates.length > 0) {
+        const minDate = processedDates.sort()[0];
+        const maxDate = processedDates.sort()[processedDates.length - 1];
+        
+        // Batch detect extra hours for all records in the date range
+        const extraHoursStats = await batchDetectExtraHours(minDate, maxDate);
+        console.log(`[ExcelUpload] Extra hours detection: ${extraHoursStats.message}`);
+        
+        // Add extra hours stats to response
+        stats.extraHoursDetected = extraHoursStats.updated;
+        stats.extraHoursProcessed = extraHoursStats.processed;
+      }
+    } catch (extraHoursError) {
+      console.error('[ExcelUpload] Error detecting extra hours:', extraHoursError);
+      // Don't fail the upload if extra hours detection fails
+      stats.extraHoursError = extraHoursError.message;
+    }
+
     res.status(200).json({
       success: true,
       message: `Successfully processed ${rawLogs.length} logs from Excel`,
@@ -125,6 +155,8 @@ exports.uploadExcel = async (req, res) => {
         rawLogsInserted: stats.rawLogsInserted,
         dailyRecordsCreated: stats.dailyRecordsCreated,
         dailyRecordsUpdated: stats.dailyRecordsUpdated,
+        extraHoursDetected: stats.extraHoursDetected || 0,
+        extraHoursProcessed: stats.extraHoursProcessed || 0,
         errors: errors.length > 0 ? errors : undefined,
       },
     });

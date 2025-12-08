@@ -184,6 +184,39 @@ const departmentSettingsSchema = new mongoose.Schema(
         default: null,
         min: 0,
       },
+      // Permission Deduction Rules
+      deductionRules: {
+        // Count threshold (e.g., 4 permissions)
+        countThreshold: {
+          type: Number,
+          default: null,
+          min: 1,
+        },
+        // Deduction type: half_day, full_day, custom_amount
+        deductionType: {
+          type: String,
+          enum: ['half_day', 'full_day', 'custom_amount', null],
+          default: null,
+        },
+        // Custom deduction amount (only if deductionType is 'custom_amount')
+        deductionAmount: {
+          type: Number,
+          default: null,
+          min: 0,
+        },
+        // Minimum duration in minutes (only count permissions >= this duration)
+        minimumDuration: {
+          type: Number,
+          default: null,
+          min: 0,
+        },
+        // Calculation mode: proportional (with partial) or floor (only full multiples)
+        calculationMode: {
+          type: String,
+          enum: ['proportional', 'floor', null],
+          default: null,
+        },
+      },
     },
 
     // Overtime (OT) Settings
@@ -199,6 +232,42 @@ const departmentSettingsSchema = new mongoose.Schema(
         type: Number,
         default: null, // null = use global default
         min: 0,
+      },
+    },
+
+    // Attendance Deduction Rules (Combined Late-in + Early-out)
+    attendance: {
+      deductionRules: {
+        // Combined count threshold (late-ins + early-outs)
+        combinedCountThreshold: {
+          type: Number,
+          default: null,
+          min: 1,
+        },
+        // Deduction type: half_day, full_day, custom_amount
+        deductionType: {
+          type: String,
+          enum: ['half_day', 'full_day', 'custom_amount', null],
+          default: null,
+        },
+        // Custom deduction amount (only if deductionType is 'custom_amount')
+        deductionAmount: {
+          type: Number,
+          default: null,
+          min: 0,
+        },
+        // Minimum duration in minutes (only count late-ins/early-outs >= this duration)
+        minimumDuration: {
+          type: Number,
+          default: null,
+          min: 0,
+        },
+        // Calculation mode: proportional (with partial) or floor (only full multiples)
+        calculationMode: {
+          type: String,
+          enum: ['proportional', 'floor', null],
+          default: null,
+        },
       },
     },
 

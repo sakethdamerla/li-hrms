@@ -86,6 +86,15 @@ router.get('/stats', leaveController.getLeaveStats);
 // Get approved records for a date (for conflict checking)
 router.get('/approved-records', leaveController.getApprovedRecordsForDate);
 
+// Get leave conflicts for attendance date
+router.get('/conflicts', leaveController.getLeaveConflicts);
+
+// Revoke leave for attendance
+router.post('/:id/revoke-for-attendance', authorize('super_admin', 'sub_admin', 'hr', 'hod'), leaveController.revokeLeaveForAttendance);
+
+// Update leave for attendance (multi-day leave adjustments)
+router.post('/:id/update-for-attendance', authorize('super_admin', 'sub_admin', 'hr', 'hod'), leaveController.updateLeaveForAttendance);
+
 // Get all leaves (with filters)
 router.get('/', authorize('hod', 'hr', 'sub_admin', 'super_admin'), leaveController.getLeaves);
 
