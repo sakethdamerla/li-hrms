@@ -12,6 +12,7 @@ import {
   SettingsToggleRow,
   SettingsSaveBar,
   SettingsOutlineButton,
+  SettingsCollapsibleSectionCard,
 } from '@/components/settings/SettingsPageShell';
 import { settingsInputClass, settingsInputStyle, settingsLedgerBorder } from '@/lib/settingsUi';
 
@@ -66,6 +67,23 @@ const GeneralSettings = () => {
   const [testingStorage, setTestingStorage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    gracePeriods: false,
+    bulkProcess: false,
+    customGroups: false,
+    autoOD: false,
+    reconciliation: false,
+    fileStorage: false,
+    localization: false,
+  });
+
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
   const loadSettings = async () => {
     try {
@@ -251,7 +269,11 @@ const GeneralSettings = () => {
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-5">
         <div className="min-w-0 space-y-4 sm:space-y-5">
-      <SettingsSectionCard title="Attendance Grace Periods">
+      <SettingsCollapsibleSectionCard
+        title="Attendance Grace Periods"
+        isOpen={openSections.gracePeriods}
+        onToggle={() => toggleSection('gracePeriods')}
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SettingsField
             label="Late In Grace Period"
@@ -291,9 +313,13 @@ const GeneralSettings = () => {
             </div>
           </SettingsField>
         </div>
-      </SettingsSectionCard>
+      </SettingsCollapsibleSectionCard>
 
-      <SettingsSectionCard title="Employee Bulk Process">
+      <SettingsCollapsibleSectionCard
+        title="Employee Bulk Process"
+        isOpen={openSections.bulkProcess}
+        onToggle={() => toggleSection('bulkProcess')}
+      >
         <SettingsToggleRow
           id="allowEmployeeBulkProcess"
           label="Allow bulk process for employees"
@@ -301,9 +327,13 @@ const GeneralSettings = () => {
           checked={allowEmployeeBulkProcess}
           onChange={setAllowEmployeeBulkProcess}
         />
-      </SettingsSectionCard>
+      </SettingsCollapsibleSectionCard>
 
-      <SettingsSectionCard title="Employee custom groups">
+      <SettingsCollapsibleSectionCard
+        title="Employee custom groups"
+        isOpen={openSections.customGroups}
+        onToggle={() => toggleSection('customGroups')}
+      >
         <SettingsToggleRow
           id="customEmployeeGrouping"
           label="Enable custom employee grouping"
@@ -311,9 +341,13 @@ const GeneralSettings = () => {
           checked={customEmployeeGroupingEnabled}
           onChange={setCustomEmployeeGroupingEnabled}
         />
-      </SettingsSectionCard>
+      </SettingsCollapsibleSectionCard>
 
-      <SettingsSectionCard title="Automatic OD Creation">
+      <SettingsCollapsibleSectionCard
+        title="Automatic OD Creation"
+        isOpen={openSections.autoOD}
+        onToggle={() => toggleSection('autoOD')}
+      >
         <SettingsToggleRow
           id="autoODCreationEnabled"
           label="Enable automatic OD creation"
@@ -321,11 +355,13 @@ const GeneralSettings = () => {
           checked={autoODCreationEnabled}
           onChange={setAutoODCreationEnabled}
         />
-      </SettingsSectionCard>
+      </SettingsCollapsibleSectionCard>
 
-      <SettingsSectionCard
+      <SettingsCollapsibleSectionCard
         title="Leave & attendance reconciliation"
         description="Control whether the system auto-rejects or narrows approved leave/OD when punches show the employee was physically present on the same day or half."
+        isOpen={openSections.reconciliation}
+        onToggle={() => toggleSection('reconciliation')}
       >
         <div className="space-y-4">
           <SettingsToggleRow
@@ -337,7 +373,7 @@ const GeneralSettings = () => {
           />
 
           <div
-            className={`flex items-center justify-between gap-4 border p-4 sm:p-5 ${!leaveAttendanceReconciliationEnabled ? 'opacity-40' : ''}`}
+            className={`flex items-center justify-between gap-4 border p-4 sm:p-5 rounded-lg ${!leaveAttendanceReconciliationEnabled ? 'opacity-40' : ''}`}
             style={settingsLedgerBorder}
           >
             <div>
@@ -370,14 +406,16 @@ const GeneralSettings = () => {
             </button>
           </div>
         </div>
-      </SettingsSectionCard>
+      </SettingsCollapsibleSectionCard>
 
         </div>
 
         <div className="min-w-0 space-y-4 sm:space-y-5">
-      <SettingsSectionCard
+      <SettingsCollapsibleSectionCard
         title="File storage"
         description="Choose where uploaded files (certificates, profile photos, evidence, company logo) are stored."
+        isOpen={openSections.fileStorage}
+        onToggle={() => toggleSection('fileStorage')}
       >
         <div className="space-y-6">
           <SettingsField
@@ -395,9 +433,9 @@ const GeneralSettings = () => {
                       provider: option,
                     }))
                   }
-                  className={`border px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`border px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
                     fileStorageConfig.provider === option
-                      ? 'border-[color:var(--ps-accent)] bg-[color:var(--ps-accent-soft)] text-stone-900 dark:text-stone-100'
+                      ? 'border-[color:var(--ps-accent-border)] bg-[var(--ps-accent-soft)] text-stone-900 dark:text-stone-100'
                       : 'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
                   }`}
                   style={fileStorageConfig.provider === option ? undefined : settingsLedgerBorder}
@@ -595,21 +633,26 @@ const GeneralSettings = () => {
             </SettingsOutlineButton>
           </div>
         </div>
-      </SettingsSectionCard>
+      </SettingsCollapsibleSectionCard>
 
-      <SettingsSectionCard title="System Localization" className="opacity-50">
+      <SettingsCollapsibleSectionCard
+        title="System Localization"
+        className="opacity-50"
+        isOpen={openSections.localization}
+        onToggle={() => toggleSection('localization')}
+      >
         <div className="mb-4 flex items-center justify-end">
           <span className="rounded bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">COMING SOON</span>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 grayscale">
           <SettingsField label="Language">
-            <div className="h-11 border bg-stone-50" style={settingsLedgerBorder} />
+            <div className="h-11 border bg-stone-50 rounded-lg" style={settingsLedgerBorder} />
           </SettingsField>
           <SettingsField label="Timezone">
-            <div className="h-11 border bg-stone-50" style={settingsLedgerBorder} />
+            <div className="h-11 border bg-stone-50 rounded-lg" style={settingsLedgerBorder} />
           </SettingsField>
         </div>
-      </SettingsSectionCard>
+      </SettingsCollapsibleSectionCard>
         </div>
       </div>
 

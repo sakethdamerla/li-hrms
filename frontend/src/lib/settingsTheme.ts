@@ -12,7 +12,7 @@ export type SettingsThemeTokens = {
 };
 
 const THEMES: Record<SettingsThemeKey, SettingsThemeTokens> = {
-  general: { border: 'rgb(14 165 233 / 0.38)', soft: 'rgb(14 165 233 / 0.09)', ink: 'rgb(3 105 161)', accent: 'rgb(14 165 233)' },
+  general: { border: 'var(--ps-accent-border)', soft: 'var(--ps-accent-soft)', ink: 'var(--ps-accent-ink)', accent: 'var(--ps-accent)' },
   company: { border: 'rgb(20 184 166 / 0.38)', soft: 'rgb(20 184 166 / 0.09)', ink: 'rgb(15 118 110)', accent: 'rgb(20 184 166)' },
   communications: { border: 'rgb(139 92 246 / 0.38)', soft: 'rgb(139 92 246 / 0.09)', ink: 'rgb(91 33 182)', accent: 'rgb(139 92 246)' },
   feature_control: { border: 'rgb(245 158 11 / 0.4)', soft: 'rgb(245 158 11 / 0.1)', ink: 'rgb(180 83 9)', accent: 'rgb(245 158 11)' },

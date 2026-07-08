@@ -21,16 +21,47 @@ import { motion } from 'framer-motion';
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 // Component 1: Attendance Trends (Area Chart)
-export const AttendancePulse = ({ data }: { data: any[] }) => {
-  const tooltipLabelFormatter = (label: React.ReactNode, payload: readonly any[]) => {
-    if (typeof label !== 'string') return label;
-    const point = payload?.[0]?.payload;
-    if (!point?.date) return label;
-    const parsed = new Date(`${point.date}T00:00:00`);
-    if (Number.isNaN(parsed.getTime())) return `${label} (${point.date})`;
-    return `${label} • ${parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-  };
+const AttendanceTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const point = payload[0].payload;
+    const dateStr = point?.date;
+    let dateLabel = label;
+    if (dateStr) {
+      const parsed = new Date(`${dateStr}T00:00:00`);
+      if (!Number.isNaN(parsed.getTime())) {
+        dateLabel = `${label} • ${parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      }
+    }
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-800 dark:bg-zinc-950 text-xs">
+        <p className="font-bold text-zinc-900 dark:text-white mb-2">{dateLabel}</p>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-[#1e3a8a]" /> Present
+            </span>
+            <span className="font-semibold text-zinc-900 dark:text-white">{point?.present ?? 0}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-[#0ea5e9]" /> Leave
+            </span>
+            <span className="font-semibold text-zinc-900 dark:text-white">{point?.leave ?? 0}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-[#7c3aed]" /> On Duty (OD)
+            </span>
+            <span className="font-semibold text-zinc-900 dark:text-white">{point?.od ?? 0}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
+export const AttendancePulse = ({ data }: { data: any[] }) => {
   return (
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -57,14 +88,7 @@ export const AttendancePulse = ({ data }: { data: any[] }) => {
             tickLine={false} 
             tick={{ fontSize: 10, fill: '#6b7280' }}
           />
-          <Tooltip 
-            labelFormatter={tooltipLabelFormatter}
-            contentStyle={{ 
-              borderRadius: '12px', 
-              border: 'none', 
-              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' 
-            }} 
-          />
+          <Tooltip content={<AttendanceTooltip />} />
           <Area
             type="monotone"
             dataKey="present"
@@ -170,3 +194,112 @@ export const DashboardCard = ({ title, subtitle, children, icon: Icon, className
     {children}
   </motion.div>
 );
+
+// Component 4: Leave & OD Stacked Trends with Period Selection
+export const LeaveODStackedTrends = ({
+  data,
+  loading,
+  trackerPeriod,
+  onTrackerPeriodChange,
+}: {
+  data: any[];
+  loading: boolean;
+  trackerPeriod: 'week' | 'month' | 'lastMonth';
+  onTrackerPeriodChange: (val: 'week' | 'month' | 'lastMonth') => void;
+}) => {
+  const [activeTab, setActiveTab] = React.useState<'leave' | 'od'>('leave');
+
+  return (
+    <div className="w-full">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        {/* Toggle between Leave and OD */}
+        <div className="flex rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
+          <button
+            onClick={() => setActiveTab('leave')}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              activeTab === 'leave'
+                ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-white'
+                : 'text-zinc-500 hover:text-zinc-950 dark:hover:text-zinc-300'
+            }`}
+          >
+            Leave Requests
+          </button>
+          <button
+            onClick={() => setActiveTab('od')}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              activeTab === 'od'
+                ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-white'
+                : 'text-zinc-500 hover:text-zinc-950 dark:hover:text-zinc-300'
+            }`}
+          >
+            OD Requests
+          </button>
+        </div>
+
+        {/* Tracker Period Select Dropdown */}
+        <div>
+          <select
+            value={trackerPeriod}
+            onChange={(e) => onTrackerPeriodChange(e.target.value as any)}
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+          >
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="lastMonth">Last Month</option>
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex h-[300px] items-center justify-center">
+          <p className="text-xs text-zinc-400 animate-pulse">Loading trends data...</p>
+        </div>
+      ) : data.length === 0 ? (
+        <div className="flex h-[300px] items-center justify-center border border-dashed border-zinc-200 rounded-2xl dark:border-zinc-800">
+          <p className="text-xs text-zinc-400">No data found in range</p>
+        </div>
+      ) : (
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+              <XAxis
+                dataKey="label"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 9, fill: '#6b7280' }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 9, fill: '#6b7280' }}
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: '12px',
+                  border: 'none',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                  fontSize: '11px',
+                }}
+              />
+              <Legend verticalAlign="top" height={36} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
+              {activeTab === 'leave' ? (
+                <>
+                  <Bar dataKey="approvedLeaves" name="Approved" stackId="statusStack" fill="#10B981" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="pendingLeaves" name="Pending" stackId="statusStack" fill="#F59E0B" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="rejectedLeaves" name="Rejected" stackId="statusStack" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                </>
+              ) : (
+                <>
+                  <Bar dataKey="approvedODs" name="Approved" stackId="statusStack" fill="#10B981" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="pendingODs" name="Pending" stackId="statusStack" fill="#F59E0B" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="rejectedODs" name="Rejected" stackId="statusStack" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                </>
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+};

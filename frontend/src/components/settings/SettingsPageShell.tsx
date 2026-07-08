@@ -137,7 +137,7 @@ export function SettingsHubLayout({
               <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="truncate font-serif text-lg font-light tracking-tight text-stone-900 dark:text-stone-100 sm:text-xl">
+              <h1 className="truncate font-sans text-lg font-medium tracking-tight text-stone-900 dark:text-stone-100 sm:text-xl">
                 {title}
               </h1>
               <p
@@ -259,7 +259,7 @@ export function SettingsPanelHeader({
           {crumb}
         </p>
       ) : null}
-      <h2 className="mt-0.5 font-serif text-xl font-light tracking-tight text-stone-900 dark:text-stone-50 sm:text-2xl">
+      <h2 className="mt-0.5 font-sans text-xl font-medium tracking-tight text-stone-900 dark:text-stone-50 sm:text-2xl">
         {title}
       </h2>
       {subtitle ? <p className="mt-0.5 text-sm text-stone-500 dark:text-stone-400">{subtitle}</p> : null}
@@ -300,6 +300,51 @@ export function SettingsSectionCard({
         </div>
       ) : null}
       <div className={settingsCardBodyClass}>{children}</div>
+    </section>
+  );
+}
+
+export function SettingsCollapsibleSectionCard({
+  title,
+  description,
+  children,
+  isOpen,
+  onToggle,
+  className = '',
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
+  className?: string;
+}) {
+  return (
+    <section className={`${settingsCardClass} ${className}`} style={settingsLedgerBorder}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`w-full flex items-center justify-between text-left ${settingsCardHeaderClass}`}
+        style={{
+          ...settingsLedgerBorder,
+          ...settingsThemeSoftStyle,
+          borderLeftWidth: 3,
+          borderLeftColor: 'var(--settings-theme-accent, var(--ps-accent))',
+        }}
+      >
+        <div className="min-w-0 pr-4">
+          <h3 className="text-[13px] font-medium text-stone-900 dark:text-stone-100 normal-case tracking-normal">{title}</h3>
+          {description ? (
+            <p className="mt-1 text-xs normal-case tracking-normal text-stone-500 dark:text-stone-400">{description}</p>
+          ) : null}
+        </div>
+        <ChevronRight
+          className={`h-4 w-4 shrink-0 text-stone-400 transition-transform duration-200 ${
+            isOpen ? 'rotate-90' : ''
+          }`}
+        />
+      </button>
+      {isOpen && <div className={settingsCardBodyClass}>{children}</div>}
     </section>
   );
 }
@@ -353,7 +398,7 @@ export function SettingsToggleRow({
 }) {
   return (
     <div
-      className="flex items-center justify-between gap-3 border p-3 sm:p-3.5"
+      className="flex items-center justify-between gap-3 border p-3 sm:p-3.5 rounded-lg"
       style={settingsLedgerBorder}
     >
       <div className="min-w-0">

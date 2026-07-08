@@ -30,7 +30,7 @@ export const settingsThemeAccentStyle: CSSProperties = {
 
 /** Flat ledger card — no heavy shadows */
 export const settingsCardClass =
-  'w-full min-w-0 overflow-hidden border bg-white dark:bg-stone-950';
+  'w-full min-w-0 overflow-hidden border bg-white dark:bg-stone-950 rounded-lg';
 
 export const settingsCardHeaderClass =
   'border-b px-3 py-2 sm:px-4 sm:py-2.5';

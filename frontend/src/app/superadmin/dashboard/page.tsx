@@ -25,7 +25,8 @@ import {
   AttendancePulse,
   LeaveSpectrum,
   WorkforceHeatmap,
-  DashboardCard
+  DashboardCard,
+  LeaveODStackedTrends
 } from './components/HRWidgets';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -96,6 +97,28 @@ export default function SuperAdminDashboard() {
   const [notificationLoading, setNotificationLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { pushSubscribed } = useDashboardPushBell(true);
+
+  const [trendPeriod, setTrendPeriod] = useState<'week' | 'month' | 'lastMonth'>('week');
+  const [trendsData, setTrendsData] = useState<any[]>([]);
+  const [trendsLoading, setTrendsLoading] = useState(false);
+
+  const loadTrendsData = useCallback(async () => {
+    try {
+      setTrendsLoading(true);
+      const res = await (api as any).getLeaveODTrends(trendPeriod);
+      if (res.success && res.data) {
+        setTrendsData(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load leave/OD trends:', err);
+    } finally {
+      setTrendsLoading(false);
+    }
+  }, [trendPeriod]);
+
+  useEffect(() => {
+    loadTrendsData();
+  }, [loadTrendsData]);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -267,63 +290,132 @@ export default function SuperAdminDashboard() {
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {/* ── Stat Cards Row 1: Workforce Snapshot ── */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                     {[
                       {
                         title: 'Active Employees',
                         value: stats.activeEmployees ?? 0,
-                        iconBg: 'bg-blue-100 dark:bg-blue-950/50',
+                        accent: '#2D5BFF',
+                        iconBg: 'bg-blue-50 dark:bg-blue-950/50',
+                        border: 'border-blue-100 dark:border-blue-900/60',
+                        meta: 'Total workforce',
                         icon: (
-                          <svg className="h-4 w-4 text-[#2D5BFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                         ),
-                        meta: 'Workforce Count',
                       },
                       {
-                        title: 'Attendance Health',
-                        value: `${(stats.attendanceRate ?? 0).toFixed(1)}%`,
-                        iconBg: 'bg-emerald-100 dark:bg-emerald-950/50',
+                        title: 'Present Today',
+                        value: stats.todayPresent ?? 0,
+                        accent: '#059669',
+                        iconBg: 'bg-emerald-50 dark:bg-emerald-950/50',
+                        border: 'border-emerald-100 dark:border-emerald-900/60',
+                        meta: "Clocked in today",
                         icon: (
-                          <svg className="h-4 w-4 text-[#1E8A5A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         ),
-                        meta: "Today's Presence",
                       },
                       {
-                        title: 'Pending Leaves',
-                        value: stats.pendingLeaves ?? 0,
-                        iconBg: 'bg-amber-100 dark:bg-amber-950/40',
+                        title: 'Absent Today',
+                        value: stats.todayAbsent ?? 0,
+                        accent: '#EF4444',
+                        iconBg: 'bg-red-50 dark:bg-red-950/50',
+                        border: 'border-red-100 dark:border-red-900/60',
+                        meta: 'Not checked in',
                         icon: (
-                          <svg className="h-4 w-4 text-[#A16207]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m8-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         ),
-                        meta: 'Awaiting Approval',
                       },
                       {
-                        title: 'Pending ODs',
-                        value: stats.pendingODs ?? 0,
-                        iconBg: 'bg-fuchsia-100 dark:bg-fuchsia-950/40',
+                        title: 'On Leave',
+                        value: stats.todayOnLeave ?? 0,
+                        accent: '#F59E0B',
+                        iconBg: 'bg-amber-50 dark:bg-amber-950/40',
+                        border: 'border-amber-100 dark:border-amber-900/60',
+                        meta: 'Approved leave',
                         icon: (
-                          <svg className="h-4 w-4 text-[#A21CAF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                         ),
-                        meta: 'On-Duty Requests',
                       },
                     ].map((cell) => (
                       <div
                         key={cell.title}
-                        className="flex items-start justify-between gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+                        className={`group flex items-start justify-between gap-2 rounded-2xl border ${cell.border} bg-white px-4 py-3.5 shadow-sm transition-shadow hover:shadow-md dark:bg-zinc-900`}
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-zinc-500 dark:text-zinc-500">{cell.title}</p>
-                          <p className="mt-1 text-4xl font-bold tabular-nums tracking-tight text-zinc-900 dark:text-white">{cell.value}</p>
-                          <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-zinc-400">{cell.meta}</p>
+                          <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{cell.title}</p>
+                          <p className="mt-1.5 text-4xl font-black tabular-nums tracking-tight" style={{ color: cell.accent }}>{cell.value}</p>
+                          <p className="mt-1 text-[10px] font-medium text-zinc-400">{cell.meta}</p>
                         </div>
-                        <div className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${cell.iconBg}`}>
+                        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${cell.iconBg}`} style={{ color: cell.accent }}>
+                          {cell.icon}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── Stat Cards Row 2: Today's OD + Monthly Changes ── */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {[
+                      {
+                        title: 'On OD Today',
+                        value: stats.todayODs ?? 0,
+                        accent: '#7C3AED',
+                        iconBg: 'bg-violet-50 dark:bg-violet-950/40',
+                        border: 'border-violet-100 dark:border-violet-900/60',
+                        meta: 'On-duty assignments',
+                        icon: (
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        title: 'Joined This Month',
+                        value: stats.newEmployeesThisMonth ?? 0,
+                        accent: '#0EA5E9',
+                        iconBg: 'bg-sky-50 dark:bg-sky-950/40',
+                        border: 'border-sky-100 dark:border-sky-900/60',
+                        meta: 'New joiners',
+                        icon: (
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        title: 'Resigned This Month',
+                        value: stats.resignedThisMonth ?? 0,
+                        accent: '#F43F5E',
+                        iconBg: 'bg-rose-50 dark:bg-rose-950/40',
+                        border: 'border-rose-100 dark:border-rose-900/60',
+                        meta: 'Attrition this month',
+                        icon: (
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                        ),
+                      },
+                    ].map((cell) => (
+                      <div
+                        key={cell.title}
+                        className={`group flex items-start justify-between gap-2 rounded-2xl border ${cell.border} bg-white px-4 py-3.5 shadow-sm transition-shadow hover:shadow-md dark:bg-zinc-900`}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{cell.title}</p>
+                          <p className="mt-1.5 text-4xl font-black tabular-nums tracking-tight" style={{ color: cell.accent }}>{cell.value}</p>
+                          <p className="mt-1 text-[10px] font-medium text-zinc-400">{cell.meta}</p>
+                        </div>
+                        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${cell.iconBg}`} style={{ color: cell.accent }}>
                           {cell.icon}
                         </div>
                       </div>
@@ -358,6 +450,15 @@ export default function SuperAdminDashboard() {
                       <WorkforceHeatmap data={stats.departmentHeadcount} />
                     </DashboardCard>
                   </div>
+
+                  <DashboardCard title="Leave & OD Request Trends" subtitle="Volume of requests and status distribution" icon={FileBarChart}>
+                    <LeaveODStackedTrends
+                      data={trendsData}
+                      loading={trendsLoading}
+                      trackerPeriod={trendPeriod}
+                      onTrackerPeriodChange={setTrendPeriod}
+                    />
+                  </DashboardCard>
                 </>
               )}
             </div>

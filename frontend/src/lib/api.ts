@@ -1823,6 +1823,14 @@ export const api = {
     return apiRequest<any>(`/dashboard/analytics${q}`, { method: 'GET' });
   },
 
+  getLeaveODTrends: async (trackerPeriod?: 'week' | 'month' | 'lastMonth') => {
+    const q =
+      trackerPeriod && ['week', 'month', 'lastMonth'].includes(trackerPeriod)
+        ? `?trackerPeriod=${encodeURIComponent(trackerPeriod)}`
+        : '';
+    return apiRequest<any>(`/dashboard/leave-od-trends${q}`, { method: 'GET' });
+  },
+
   getEmployeesWithoutAccount: async () => {
     return apiRequest<any>('/users/employees-without-account', { method: 'GET' });
   },

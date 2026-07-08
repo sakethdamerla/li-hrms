@@ -1098,3 +1098,133 @@ exports.getSuperAdminAnalytics = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error fetching analytics', error: error.message });
   }
 };
+
+exports.getLeaveODTrends = async (req, res) => {
+  try {
+    if (!['super_admin', 'sub_admin'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const requestedDateRaw = typeof req.query.date === 'string' ? req.query.date.trim() : '';
+    const isValidDateOverride = /^\d{4}-\d{2}-\d{2}$/.test(requestedDateRaw);
+    const todayStr = isValidDateOverride ? requestedDateRaw : getTodayISTDateString();
+    
+    const trackerPeriodRaw = String(req.query.trackerPeriod || 'week').toLowerCase();
+    const trackerPeriod = ['week', 'month', 'lastmonth'].includes(trackerPeriodRaw)
+      ? trackerPeriodRaw
+      : 'week';
+
+    const analyticsAnchorDate = createISTDate(todayStr, '12:00');
+    const currentCycle = await dateCycleService.getPayrollCycleForDate(analyticsAnchorDate);
+    const prevMonthDate = new Date(currentCycle.startDate);
+    prevMonthDate.setDate(prevMonthDate.getDate() - 15);
+    const previousCycle = await dateCycleService.getPayrollCycleForDate(prevMonthDate);
+
+    const cycleStart = currentCycle.startDate;
+    const cycleEnd = currentCycle.endDate;
+    const prevCycleStart = previousCycle.startDate;
+    const prevCycleEnd = previousCycle.endDate;
+
+    let startStr, endStr;
+
+    if (trackerPeriod === 'week') {
+      startStr = istSundayWeekStart(todayStr);
+      endStr = addCalendarDaysIST(startStr, 6);
+    } else if (trackerPeriod === 'month') {
+      startStr = extractISTComponents(cycleStart).dateStr;
+      endStr = todayStr;
+    } else {
+      startStr = extractISTComponents(prevCycleStart).dateStr;
+      endStr = extractISTComponents(prevCycleEnd).dateStr;
+    }
+
+    const start = createISTDate(startStr, '00:00');
+    const end = createISTDate(endStr, '23:59');
+
+    const [leaves, ods] = await Promise.all([
+      Leave.find({
+        fromDate: { $gte: start, $lte: end },
+        isActive: true
+      }).select('fromDate status').lean(),
+      OD.find ? OD.find({
+        fromDate: { $gte: start, $lte: end },
+        isActive: true
+      }).select('fromDate status').lean().catch(() => []) : Promise.resolve([])
+    ]);
+
+    // Enumerate all dates in range
+    const enumerateDateStrRange = (fromStr, toStr) => {
+      const out = [];
+      let ds = fromStr;
+      while (ds <= toStr) {
+        out.push(ds);
+        ds = addCalendarDaysIST(ds, 1);
+      }
+      return out;
+    };
+
+    const dateList = enumerateDateStrRange(startStr, endStr);
+    const trendsMap = {};
+    
+    dateList.forEach(ds => {
+      const dateObj = createISTDate(ds, '12:00');
+      let label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      if (trackerPeriod === 'week') {
+        const ref = createISTDate(ds, '12:00');
+        const short = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short' }).format(ref);
+        label = short;
+      } else {
+        const dayNum = parseInt(ds.slice(8, 10), 10);
+        label = String(dayNum);
+      }
+
+      trendsMap[ds] = {
+        date: ds,
+        label,
+        approvedLeaves: 0,
+        pendingLeaves: 0,
+        rejectedLeaves: 0,
+        approvedODs: 0,
+        pendingODs: 0,
+        rejectedODs: 0,
+      };
+    });
+
+    const getStatusGroup = (status) => {
+      if (status === 'approved') return 'approved';
+      if (status && status.includes('rejected')) return 'rejected';
+      if (status === 'cancelled') return 'cancelled';
+      return 'pending';
+    };
+
+    leaves.forEach(l => {
+      const ds = extractISTComponents(l.fromDate).dateStr;
+      if (trendsMap[ds]) {
+        const grp = getStatusGroup(l.status);
+        if (grp === 'approved') trendsMap[ds].approvedLeaves += 1;
+        else if (grp === 'pending') trendsMap[ds].pendingLeaves += 1;
+        else if (grp === 'rejected') trendsMap[ds].rejectedLeaves += 1;
+      }
+    });
+
+    ods.forEach(o => {
+      const ds = extractISTComponents(o.fromDate).dateStr;
+      if (trendsMap[ds]) {
+        const grp = getStatusGroup(o.status);
+        if (grp === 'approved') trendsMap[ds].approvedODs += 1;
+        else if (grp === 'pending') trendsMap[ds].pendingODs += 1;
+        else if (grp === 'rejected') trendsMap[ds].rejectedODs += 1;
+      }
+    });
+
+    const data = dateList.map(ds => trendsMap[ds]);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error('Error fetching leave/OD trends:', error);
+    res.status(500).json({ success: false, message: 'Error fetching leave/OD trends', error: error.message });
+  }
+};
